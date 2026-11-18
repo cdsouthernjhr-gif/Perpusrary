@@ -21,7 +21,7 @@ fail() { echo "not ok - $*"; cleanup; exit 1; }
 ok()   { echo "ok - $*"; }
 
 cleanup() {
-  "${PSQL[@]}" >/dev/null <<'SQL' || true
+  "${PSQL[@]}" >/dev/null <<'SQL' || echo "not ok - cleanup failed"
 delete from public.libraries where id in (select id from tests.ids where key like 'lib_%');
 delete from auth.users where email like '%@test.local';
 SQL

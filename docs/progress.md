@@ -59,10 +59,66 @@ pengguna. Penemuan:
    Function dengan kunci pelayan – tidak boleh dalam APK). Buat masa ini
    penerima melihat jemputan *pending* selepas log masuk dengan e-mel yang sama.
 
-### Langkah seterusnya – Fasa 3
+### Langkah seterusnya (asal) – Fasa 3
 - Drift/SQLite: skema tempatan, DAO, `sync_queue`, `sync_cursors`.
 - Library Switcher sebenar (logo, kiraan, status sync; cache tempatan +
   pengesahan semula `my_libraries()` setiap sesi; pembersihan konteks
   apabila bertukar perpustakaan).
 - Pengurusan pengguna (senarai ahli, jemput, tukar peranan, nyahaktif).
 - Dashboard (`library_dashboard()`).
+
+## Fasa 3 – Database tempatan, Library Switcher, pengguna, Dashboard ✅
+
+### Dibina
+- **Drift/SQLite** skema v1 (perpustakaan, katalog, `sync_queue`, `sync_cursors`, key-value) + DAO.
+- **LibraryContextController**: pengesahan semula keahlian setiap sesi & setiap
+  pertukaran, pemadaman data perpustakaan yang aksesnya ditarik, pemadaman data
+  apabila pengguna lain log masuk pada peranti sama, pendaftaran peranti.
+- **Library Switcher**: nama, logo (inisial), kod, peranan, jumlah judul/naskhah,
+  status aktif, penunjuk sync, carian, jemputan, mod luar talian.
+- **Tambah/Edit perpustakaan** (Super Admin cipta + jemput Library Admin pertama;
+  Library Admin edit maklumat; hanya Super Admin aktif/nyahaktif & tukar kod).
+- **Pengurusan pengguna**: senarai ahli, jemput, batal jemputan, tukar peranan,
+  nyahaktif/aktif semula; skrin "Jemputan Saya" + terima.
+- **Dashboard**: nama perpustakaan aktif jelas, butang tukar, penunjuk sync,
+  statistik (judul, naskhah, hari ini, kategori, lokasi; admin: pengguna aktif,
+  sedang sync, gagal sync, peranti), status naskhah, ringkasan kategori,
+  aktiviti terkini; fallback statistik tempatan apabila luar talian.
+- **Tetapan**: profil (nama, telefon), status pengesahan, log keluar dengan
+  amaran perubahan belum sync.
+- Menu modul (drawer) – modul fasa akan datang dipaparkan sebagai "Akan datang".
+
+### Migration
+`20261118000800_phase3_members_libraries.sql`
+
+### Pepijat ditemui & dibetulkan oleh ujian
+1. Super Admin `INSERT … RETURNING` pada `libraries` ditolak RLS (subkueri polisi
+   SELECT tidak nampak baris baharu) → polisi SELECT kini membenarkan Super Admin.
+2. Trigger audit gagal (FK) apabila seluruh perpustakaan dipadam → anak tidak
+   dilog; pemadaman perpustakaan dilog sebagai peristiwa sistem.
+3. `refresh()` semasa `initialize()` memadam pilihan perpustakaan terakhir
+   sebelum dipulihkan → kini hanya dipadam jika perpustakaan aktif ditarik.
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| Migration ×2 + DB (00–40) + concurrency | ✅ **171 assertion lulus, 0 gagal** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` | ✅ **40/40** (unit 33, widget 7) |
+
+### Masalah / had yang masih ada
+1. Semua perkara dari Fasa 2 masih terpakai: belum diuji pada Supabase sebenar
+   dan peranti Android sebenar; APK belum dibina (tiada Android SDK di sini).
+2. Muat naik logo perpustakaan belum dibina (inisial dipaparkan) – akan
+   digabungkan dengan muat naik kulit buku (Fasa 4).
+3. "Sedang sync" pada penunjuk bergantung pada enjin sync (Fasa 6);
+   kini penunjuk berdasarkan sambungan + `sync_queue`.
+4. Penghantaran e-mel jemputan automatik masih belum (perlu Edge Function).
+5. Nama peranti menggunakan ID ringkas (tiada plugin maklumat peranti).
+
+### Langkah seterusnya – Fasa 4
+Katalog buku (tambah/edit/cari/soft delete, pengesanan pendua), imbasan ISBN
+(kamera + manual, Google Books / Open Library), naskhah & barcode (Code 128,
+jana/imbas/cetak label), kategori, lokasi rak – semuanya ditulis ke Drift +
+`sync_queue` terlebih dahulu.

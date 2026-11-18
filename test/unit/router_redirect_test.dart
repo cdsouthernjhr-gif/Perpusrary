@@ -24,6 +24,16 @@ void main() {
     expect(r(Routes.libraries, signedIn: true), isNull);
   });
 
+
+  test('library-scoped routes require an active library', () {
+    for (final loc in Routes.libraryScoped) {
+      expect(authRedirect(location: loc, signedIn: true, passwordRecovery: false), Routes.libraries);
+      expect(authRedirect(location: loc, signedIn: true, passwordRecovery: false, hasActiveLibrary: true), isNull);
+    }
+    expect(r(Routes.settings, signedIn: true), isNull);
+    expect(r(Routes.invitations, signedIn: true), isNull);
+  });
+
   test('password recovery forces the reset screen', () {
     expect(r(Routes.libraries, signedIn: true, recovery: true), Routes.resetPassword);
     expect(r(Routes.resetPassword, signedIn: true, recovery: true), isNull);

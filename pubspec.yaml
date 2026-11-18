@@ -42,6 +42,10 @@ dependencies:
   flutter_secure_storage: 11.2.0
   uuid: 4.6.0
   intl: 0.20.3
+  drift: 2.35.4
+  drift_flutter: 0.3.1
+  connectivity_plus: 7.3.2
+  path_provider: 2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +58,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: 6.0.0
   mocktail: 1.0.5
+  drift_dev: 2.35.3
+  build_runner: 2.17.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,3 +102,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# package:sqlite3 (used by Drift) bundles its own SQLite on Android.
+# On Linux hosts (CI / `flutter test`) use the system libsqlite3 instead of
+# downloading prebuilt binaries (requires `libsqlite3-dev` on Linux).
+hooks:
+  user_defines:
+    sqlite3:
+      source:
+        linux: system
+        default: sqlite3

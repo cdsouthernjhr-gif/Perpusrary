@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,7 +7,13 @@ import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/password_screens.dart';
 import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
-import '../../features/libraries/presentation/library_switcher_placeholder.dart';
+import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/libraries/application/library_context.dart';
+import '../../features/libraries/presentation/library_form_screen.dart';
+import '../../features/libraries/presentation/library_switcher_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/users/presentation/members_screen.dart';
+import '../../features/users/presentation/my_invitations_screen.dart';
 import 'routes.dart';
 
 /// Pure redirect logic (unit-tested in test/unit/router_redirect_test.dart).
@@ -14,6 +21,7 @@ String? authRedirect({
   required String location,
   required bool signedIn,
   required bool passwordRecovery,
+  bool hasActiveLibrary = false,
 }) {
   if (passwordRecovery) {
     return location == Routes.resetPassword ? null : Routes.resetPassword;
@@ -23,18 +31,24 @@ String? authRedirect({
     return isPublic && location != Routes.splash ? null : Routes.login;
   }
   if (isPublic || location == Routes.resetPassword) return Routes.libraries;
+  if (Routes.libraryScoped.contains(location) && !hasActiveLibrary) return Routes.libraries;
   return null;
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final session = ref.watch(authSessionProvider);
+  final libraryChanged = ValueNotifier<int>(0);
+  ref.listen(activeLibraryProvider, (_, _) => libraryChanged.value++);
+  ref.onDispose(libraryChanged.dispose);
+
   final router = GoRouter(
     initialLocation: Routes.splash,
-    refreshListenable: session,
+    refreshListenable: Listenable.merge([session, libraryChanged]),
     redirect: (context, state) => authRedirect(
       location: state.matchedLocation,
       signedIn: session.isSignedIn,
       passwordRecovery: session.isPasswordRecovery,
+      hasActiveLibrary: ref.read(activeLibraryProvider) != null,
     ),
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
@@ -42,7 +56,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.forgotPassword, builder: (_, _) => const ForgotPasswordScreen()),
       GoRoute(path: Routes.resetPassword, builder: (_, _) => const ResetPasswordScreen()),
-      GoRoute(path: Routes.libraries, builder: (_, _) => const LibrarySwitcherPlaceholder()),
+      GoRoute(path: Routes.libraries, builder: (_, _) => const LibrarySwitcherScreen()),
+      GoRoute(path: Routes.libraryNew, builder: (_, _) => const LibraryFormScreen()),
+      GoRoute(path: Routes.invitations, builder: (_, _) => const MyInvitationsScreen()),
+      GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: Routes.dashboard, builder: (_, _) => const DashboardScreen()),
+      GoRoute(path: Routes.members, builder: (_, _) => const MembersScreen()),
+      GoRoute(
+        path: Routes.libraryEdit,
+        builder: (_, _) => LibraryFormScreen(libraryId: ref.read(activeLibraryProvider)?.id),
+      ),
     ],
   );
   ref.onDispose(router.dispose);

@@ -50,6 +50,40 @@
 | `features/<modul>` | `presentation/`, `application/` setiap modul |
 | `shared/widgets` | Widget dikongsi |
 
+## Database tempatan (Drift) – Fasa 3
+
+`lib/data/local/database/` – skema v1:
+
+| Jadual | Kegunaan |
+|---|---|
+| `local_libraries` | cache `my_libraries()` + `verified_at` |
+| `key_values` | `device_id`, `owner_user_id`, `active_library_id` |
+| `local_categories`, `local_locations`, `local_books`, `local_book_copies` | cermin katalog (`server_version`, `sync_state`, `deleted_at`); `UNIQUE(library_id, barcode)` tempatan |
+| `sync_queue` | outbox; `operation_id` = kunci idempotensi pelayan |
+| `sync_cursors` | `snapshot_xmin` per (perpustakaan, entiti) |
+
+Fail `.g.dart` dijana (`dart run build_runner build`) dan di-commit.
+SQLite dibundel dalam APK; ujian hos Linux guna `libsqlite3` sistem
+(`hooks.user_defines` dalam `pubspec.yaml`).
+
+## Konteks perpustakaan aktif – Fasa 3
+
+`features/libraries/application/library_context.dart` (`LibraryContextController`):
+
+1. Setiap sesi: senarai disahkan semula melalui `my_libraries()` (+ `system_admins`).
+   Pilihan terakhir hanya *petunjuk* – dipulihkan hanya jika masih dibenarkan.
+2. Tukar perpustakaan → `refresh()` dari pelayan dahulu (jika dalam talian),
+   kemudian sahkan keahlian sebelum menukar konteks.
+3. Perpustakaan yang aksesnya ditarik → data tempatannya dipadam.
+4. Pengguna lain log masuk pada peranti yang sama → semua data tempatan dipadam
+   (termasuk `device_id`, kerana `device_registry` milik seorang pengguna).
+5. Semua provider per-perpustakaan `watch(activeLibraryProvider)`; skrin di-*key*
+   dengan `library_id` → tiada data perpustakaan lama dipaparkan.
+6. Luar talian: guna cache, ditanda "belum disahkan"; pelayan tetap
+   menguatkuasakan RLS semasa sync.
+7. Router: laluan per-perpustakaan (`/dashboard`, `/members`, `/library/edit`)
+   dialih ke `/libraries` jika tiada perpustakaan aktif.
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |

@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app/app.dart';
 import 'core/config/app_config.dart';
 import 'core/security/secure_session_storage.dart';
+import 'data/local/database/app_database.dart';
+import 'data/providers.dart';
 import 'data/remote/supabase/supabase_providers.dart';
 import 'features/authentication/presentation/splash_screen.dart';
 
@@ -30,7 +32,10 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [supabaseClientProvider.overrideWithValue(Supabase.instance.client)],
+      overrides: [
+        supabaseClientProvider.overrideWithValue(Supabase.instance.client),
+        appDatabaseProvider.overrideWithValue(AppDatabase.open()),
+      ],
       child: const SmartLibraryApp(),
     ),
   );
