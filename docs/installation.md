@@ -75,6 +75,15 @@ flutter pub get
 flutter run --dart-define-from-file=env/dev.json
 ```
 
+### Kamera & saiz APK
+
+Kebenaran `CAMERA` diminta semasa pengimbas pertama kali dibuka (tidak wajib –
+input manual dan pengimbas fizikal sentiasa berfungsi). Model ML Kit dibundel
+dalam APK (menambah beberapa MB) supaya imbasan berfungsi tanpa internet.
+Untuk APK lebih kecil, tambah `dev.steenbakker.mobile_scanner.useUnbundled=true`
+dalam `android/gradle.properties` (model dimuat turun melalui Google Play
+Services pada penggunaan pertama).
+
 ## 4. Bina APK
 
 ```powershell

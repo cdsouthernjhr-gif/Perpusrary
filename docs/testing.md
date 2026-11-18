@@ -25,6 +25,7 @@ Apa yang dijalankan:
 | Pengasingan & peranan | `10_rls_isolation.sql` – 7 ujian wajib + kes tambahan |
 | Sync | `20_sync.sql` – idempotensi, retry, konflik versi, barcode bertembung, payload berniat jahat, pull berhalaman, tombstone |
 | Jemputan & Storage | `30_invitations_storage.sql` |
+| Kontrak payload katalog (Fasa 4) | `50_catalog_payload_contract.sql` – payload tepat seperti dijana `CatalogDao` diterima `sync_push` (null, perpuluhan, tarikh ISO, FIFO, update penuh oleh staff, padam lembut) |
 | Pengguna & perpustakaan (Fasa 3) | `40_members_libraries.sql` – e-mel profil, senarai ahli ikut peranan, tukar peranan/nyahaktif, `create_library` + jemputan admin |
 | Concurrency sebenar (2–3 sambungan serentak) | `scripts/db_concurrency_test.sh` – barcode sama serentak, operation_id sama serentak, 2×25 naskhah serentak |
 
@@ -50,6 +51,12 @@ flutter test
 | `test/unit/library_context_test.dart` | pengesahan semula keahlian, tukar perpustakaan, pulih pilihan terakhir, akses ditarik, luar talian, pengguna lain pada peranti sama, Super Admin |
 | `test/unit/sync_indicator_test.dart` | keutamaan penunjuk sync |
 | `test/widget/library_switcher_dashboard_test.dart` | switcher → dashboard A → tukar → dashboard B (tiada data A), pengawal laluan, butang Super Admin, penunjuk sync |
+
+| `test/unit/isbn_barcode_test.dart` | normalisasi/checksum ISBN-10/13, penukaran, validasi barcode, penjana barcode |
+| `test/unit/book_metadata_test.dart` | Google Books → Open Library, tiada hasil/luar talian/ralat pelayan, hanya ISBN dihantar |
+| `test/unit/catalog_dao_test.dart` | transaksi buku+naskhah, outbox FIFO & penggabungan, barcode/nombor perolehan unik per perpustakaan, rollback, pendua, carian, jana barcode, pengasingan perpustakaan |
+| `test/unit/label_pdf_test.dart` | PDF label berbilang halaman |
+| `test/widget/catalog_flow_test.dart` | daftar buku → naskhah dijana, amaran pendua, Viewer tanpa butang, pengimbas keyboard-wedge, barcode pendua ditolak, buku A tidak muncul di B, **semua skrin utama tanpa limpahan pada telefon 360dp** |
 
 > Widget test yang menggunakan Drift mesti memanggil `finish(tester)` di hujung
 > (nyahlekap pokok widget + tutup DB dalam `runAsync`), jika tidak ujian tergantung.

@@ -30,6 +30,7 @@ void main() {
       expect(authRedirect(location: loc, signedIn: true, passwordRecovery: false), Routes.libraries);
       expect(authRedirect(location: loc, signedIn: true, passwordRecovery: false, hasActiveLibrary: true), isNull);
     }
+    expect(authRedirect(location: Routes.bookEdit('x'), signedIn: true, passwordRecovery: false), Routes.libraries);
     expect(r(Routes.settings, signedIn: true), isNull);
     expect(r(Routes.invitations, signedIn: true), isNull);
   });

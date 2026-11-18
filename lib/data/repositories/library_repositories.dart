@@ -45,6 +45,46 @@ abstract interface class ProfileRepository {
   Future<void> updateMine({required String fullName, String? phone});
 }
 
+class ActivityEntry {
+  const ActivityEntry({required this.action, required this.createdAt, this.userId, this.details = const {}});
+  factory ActivityEntry.fromJson(Map<String, dynamic> j) => ActivityEntry(
+        action: j['action'] as String,
+        createdAt: DateTime.parse(j['created_at'] as String),
+        userId: j['user_id'] as String?,
+        details: (j['details'] as Map<String, dynamic>?) ?? const {},
+      );
+  final String action;
+  final DateTime createdAt;
+  final String? userId;
+  final Map<String, dynamic> details;
+
+  /// Changed field names for an update entry.
+  List<String> get changedFields =>
+      ((details['changes'] as Map<String, dynamic>?) ?? const {}).keys.toList();
+}
+
+/// Server-side change history (activity_logs, RLS-filtered).
+abstract interface class ActivityRepository {
+  Future<List<ActivityEntry>> historyFor(String libraryId, String entityId);
+}
+
+class SupabaseActivityRepository implements ActivityRepository {
+  SupabaseActivityRepository(this._db);
+  final SupabaseClient _db;
+
+  @override
+  Future<List<ActivityEntry>> historyFor(String libraryId, String entityId) => _guard(() async {
+        final rows = await _db
+            .from('activity_logs')
+            .select('action, created_at, user_id, details')
+            .eq('library_id', libraryId)
+            .eq('entity_id', entityId)
+            .order('created_at', ascending: false)
+            .limit(50);
+        return rows.map(ActivityEntry.fromJson).toList();
+      });
+}
+
 abstract interface class DeviceRepository {
   Future<void> register({required String deviceId, required String deviceName, required String appVersion});
 }

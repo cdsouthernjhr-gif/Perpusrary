@@ -17,12 +17,12 @@ class _Module {
 
 final _modules = <_Module>[
   const _Module(Icons.dashboard_outlined, 'Dashboard', route: Routes.dashboard),
-  const _Module(Icons.menu_book_outlined, 'Pengurusan Buku', phase: 4),
-  const _Module(Icons.qr_code_scanner, 'Imbas ISBN / Barcode', phase: 4),
-  const _Module(Icons.library_books_outlined, 'Naskhah', phase: 4),
+  const _Module(Icons.menu_book_outlined, 'Pengurusan Buku', route: Routes.books),
+  const _Module(Icons.qr_code_scanner, 'Imbas Barcode', route: Routes.barcode),
+  const _Module(Icons.library_books_outlined, 'Pengurusan Naskhah', route: Routes.copies),
   const _Module(Icons.inventory_2_outlined, 'Inventori', phase: 5),
-  const _Module(Icons.category_outlined, 'Kategori', phase: 4),
-  const _Module(Icons.shelves, 'Lokasi Rak', phase: 4),
+  const _Module(Icons.category_outlined, 'Kategori', route: Routes.categories),
+  const _Module(Icons.shelves, 'Lokasi Rak', route: Routes.locations),
   _Module(Icons.group_outlined, 'Pengguna',
       route: Routes.members, visible: (ref) => ref.watch(activePermissionsProvider).canManageMembers),
   const _Module(Icons.assessment_outlined, 'Laporan', phase: 7),

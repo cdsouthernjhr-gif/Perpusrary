@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:smartlibrary_manager/core/errors/app_failure.dart';
 import 'package:smartlibrary_manager/data/local/database/app_database.dart';
 import 'package:smartlibrary_manager/data/providers.dart';
+import 'package:smartlibrary_manager/data/remote/book_metadata_service.dart';
 import 'package:smartlibrary_manager/data/remote/supabase/supabase_providers.dart';
 import 'package:smartlibrary_manager/data/repositories/auth_repository.dart';
 import 'package:smartlibrary_manager/data/repositories/library_repositories.dart';
@@ -117,6 +120,9 @@ class TestHarness {
         dashboardRepositoryProvider.overrideWithValue(dashboard),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
+        // Never hit the real internet in tests: metadata lookups "not found".
+        bookMetadataServiceProvider
+            .overrideWithValue(BookMetadataService(client: MockClient((_) async => http.Response('{}', 404)))),
       ];
 
   ProviderContainer container() => ProviderContainer(overrides: overrides);

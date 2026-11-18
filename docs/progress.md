@@ -122,3 +122,58 @@ Katalog buku (tambah/edit/cari/soft delete, pengesanan pendua), imbasan ISBN
 (kamera + manual, Google Books / Open Library), naskhah & barcode (Code 128,
 jana/imbas/cetak label), kategori, lokasi rak – semuanya ditulis ke Drift +
 `sync_queue` terlebih dahulu.
+
+## Fasa 4 – Katalog, ISBN, naskhah, barcode, kategori, lokasi ✅
+
+### Dibina
+- **Katalog buku**: senarai (carian tajuk/pengarang/ISBN, penapis kategori,
+  jumlah naskhah, status sync), daftar, edit, padam lembut (ditolak jika masih
+  ada naskhah aktif), butiran buku, kulit buku (URL metadata).
+- **ISBN**: imbas kamera (EAN-13, hanya ISBN sah diterima), taip, pengimbas
+  fizikal; normalisasi + checksum; carian metadata Google Books → Open Library;
+  pendaftaran tetap boleh tanpa metadata.
+- **Pengesanan pendua**: ISBN, tajuk, pengarang, penerbit, tahun – dialog
+  cadangan (buka rekod sedia ada / simpan sebagai rekod baharu / batal).
+- **Naskhah**: tambah semasa daftar (1–50, barcode dijana) atau kemudian;
+  edit status/keadaan/lokasi/perolehan/kos; padam lembut (barcode kekal
+  terpelihara); skrin Pengurusan Naskhah (carian + penapis status).
+- **Barcode**: sedia ada atau jana sistem, Code 128, imbas kamera, pengimbas
+  keyboard-wedge, cetak label PDF, cari naskhah melalui barcode; pendua
+  ditolak dengan dialog (lihat rekod sedia ada / jana baharu).
+- **Kategori** dan **Lokasi Rak** (bangunan/bilik/seksyen/rak/para) – tambah,
+  edit, padam (lokasi yang digunakan tidak boleh dipadam).
+- **Sejarah perubahan**: operasi tempatan belum disahkan + log aktiviti pelayan.
+- Semua penulisan: SQLite + `sync_queue` dalam satu transaksi.
+
+### Migration
+Tiada migration baharu (skema pelayan Fasa 2/3 sudah mencukupi). Ujian
+kontrak `50_catalog_payload_contract.sql` ditambah.
+
+### Pepijat ditemui & dibetulkan oleh ujian
+1. Limpahan teks status sync pada Butiran Buku (Row tanpa Flexible).
+2. Limpahan jubin statistik **Dashboard (Fasa 3)** pada telefon 360dp.
+3. Dropdown lokasi/kategori dengan label panjang melimpah 164px.
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| DB: migration ×2, 00–50, concurrency | ✅ **180 assertion lulus, 0 gagal** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` | ✅ **73/73** (unit 59, widget 14) |
+
+### Masalah / had yang masih ada
+1. **Data katalog belum dihantar ke pelayan** – baris gilir sync sudah lengkap
+   tetapi enjin push/pull ialah Fasa 6. Buat masa ini setiap peranti hanya
+   melihat data yang didaftarkan padanya.
+2. Pengimbas kamera, cetakan sebenar dan carian metadata sebenar belum diuji pada
+   peranti Android (ujian menggunakan input simulasi dan HTTP palsu).
+3. Muat naik gambar kulit buku/logo ke Supabase Storage belum dibina.
+4. Op `in_flight` tidak digabungkan; edit semasa penghantaran akan
+   menghasilkan update dengan base_version lama → enjin Fasa 6 perlu
+   *rebase* selepas keputusan pelayan diterima.
+
+### Langkah seterusnya – Fasa 5
+Inventori (tambah stok, pelarasan, tanda rosak/hilang/tidak aktif, pindah
+lokasi secara pukal, sejarah pergerakan stok, laporan inventori), activity log
+dalam aplikasi, dan ujian concurrency berbilang pengguna tambahan.

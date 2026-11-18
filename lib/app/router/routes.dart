@@ -14,9 +14,24 @@ abstract final class Routes {
   static const dashboard = '/dashboard';
   static const libraryEdit = '/library/edit';
   static const members = '/members';
+  static const books = '/books';
+  static const bookNew = '/books/new';
+  static String book(String id) => '/books/$id';
+  static String bookEdit(String id) => '/books/$id/edit';
+  static String copyNew(String bookId) => '/books/$bookId/copies/new';
+  static String copyEdit(String bookId, String copyId) => '/books/$bookId/copies/$copyId';
+  static const copies = '/copies';
+  static const barcode = '/barcode';
+  static const categories = '/categories';
+  static const locations = '/locations';
+  static const scanner = '/scanner';
 
   /// Routes reachable without a session.
   static const public = {splash, login, register, forgotPassword};
 
-  static const libraryScoped = {dashboard, libraryEdit, members};
+  static const libraryScoped = {dashboard, libraryEdit, members, books, copies, barcode, categories, locations};
+
+  /// Exact scoped routes and their sub-paths (e.g. `/books/{id}/edit`).
+  static bool isLibraryScoped(String location) =>
+      libraryScoped.any((r) => location == r || location.startsWith('$r/'));
 }

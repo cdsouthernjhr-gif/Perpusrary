@@ -159,13 +159,15 @@ class _StatsBody extends StatelessWidget {
           ),
         LayoutBuilder(builder: (context, c) {
           final cols = c.maxWidth > 900 ? 4 : (c.maxWidth > 560 ? 3 : 2);
-          return GridView.count(
-            crossAxisCount: cols,
+          return GridView(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              mainAxisExtent: 124, // fixed height: no overflow on small phones
+            ),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.6,
             children: [
               for (final t in tiles)
                 Card(
@@ -176,8 +178,15 @@ class _StatsBody extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Icon(t.$1, color: Theme.of(context).colorScheme.primary),
-                        Text(fmt.format(t.$3), style: Theme.of(context).textTheme.headlineSmall),
-                        Text(t.$2, style: Theme.of(context).textTheme.bodySmall),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(fmt.format(t.$3), style: Theme.of(context).textTheme.headlineSmall),
+                        ),
+                        Text(t.$2,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall),
                       ],
                     ),
                   ),

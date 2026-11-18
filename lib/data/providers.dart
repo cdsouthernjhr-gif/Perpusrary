@@ -1,8 +1,10 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'local/dao/catalog_dao.dart';
 import 'local/dao/local_dao.dart';
 import 'local/database/app_database.dart';
+import 'remote/book_metadata_service.dart';
 import 'remote/supabase/supabase_providers.dart';
 import 'repositories/library_repositories.dart';
 
@@ -16,6 +18,12 @@ final keyValueDaoProvider = Provider((ref) => KeyValueDao(ref.watch(appDatabaseP
 final librariesDaoProvider = Provider((ref) => LibrariesDao(ref.watch(appDatabaseProvider)));
 final syncQueueDaoProvider = Provider((ref) => SyncQueueDao(ref.watch(appDatabaseProvider)));
 final localDataDaoProvider = Provider((ref) => LocalDataDao(ref.watch(appDatabaseProvider)));
+final catalogDaoProvider = Provider((ref) => CatalogDao(ref.watch(appDatabaseProvider)));
+
+final bookMetadataServiceProvider = Provider((ref) => BookMetadataService());
+
+final activityRepositoryProvider =
+    Provider<ActivityRepository>((ref) => SupabaseActivityRepository(ref.watch(supabaseClientProvider)));
 
 final libraryRepositoryProvider =
     Provider<LibraryRepository>((ref) => SupabaseLibraryRepository(ref.watch(supabaseClientProvider)));

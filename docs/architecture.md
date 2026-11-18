@@ -84,6 +84,41 @@ SQLite dibundel dalam APK; ujian hos Linux guna `libsqlite3` sistem
 7. Router: laluan per-perpustakaan (`/dashboard`, `/members`, `/library/edit`)
    dialih ke `/libraries` jika tiada perpustakaan aktif.
 
+## Katalog (Fasa 4) – laluan tulis local-first
+
+```
+UI → CatalogActions (semak peranan, UX sahaja)
+   → CatalogDao: SATU transaksi SQLite
+        ├─ tulis baris local_* (sync_state = pending)
+        └─ sync_queue (operation_id UUID, payload ikut lajur pelayan)
+   → [Fasa 6] enjin sync → rpc/sync_push → RLS + kekangan pelayan
+```
+
+Penggabungan outbox (hanya operasi `pending`): insert+update → satu insert;
+update+update → satu update (base_version asal); insert+delete → kedua-dua
+dibuang; update+delete → satu delete. Bentuk payload diuji pada kedua-dua
+belah (`test/unit/catalog_dao_test.dart` dan
+`supabase/tests/database/50_catalog_payload_contract.sql`).
+
+- **Barcode naskhah**: Code 128 (ASCII boleh cetak, ≤ 64). Jana sistem:
+  `KODPUSTAKA-TAGPERANTI-NNNNNN` (tag 4 aksara daripada ID peranti + kaunter
+  per perpustakaan). Peranti offline tidak boleh menjamin keunikan global;
+  `UNIQUE(library_id, barcode)` pelayan menolak pertembungan dan pengguna boleh
+  jana barcode baharu.
+- **ISBN** disimpan dalam bentuk kanonik (ISBN-10 ditukar ke ISBN-13). Checksum
+  salah hanya amaran (sesetengah penerbit mencetak ISBN tidak sah).
+- **Metadata**: Google Books, kemudian Open Library. Hanya ISBN dihantar;
+  hasil hanya mengisi medan kosong dan pengguna menyemak sebelum simpan.
+- **Pendua**: dicadangkan (ISBN, kesamaan token tajuk/pengarang, penerbit,
+  tahun) – tidak pernah digabung automatik; edisi lain boleh disimpan.
+- **Pengimbas**: `mobile_scanner` (model ML Kit dibundel → berfungsi offline).
+  Pengimbas fizikal USB/Bluetooth (keyboard wedge) disokong pada semua medan
+  imbasan (kod + Enter).
+- **Label**: PDF A4 3×8 (Code 128 + nama perpustakaan + tajuk ringkas + no.
+  perolehan/panggilan) melalui `pdf` + `printing`.
+- **Kulit buku**: URL https daripada metadata; muat naik gambar ke Storage
+  belum dibina.
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |
