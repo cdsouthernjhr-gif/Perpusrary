@@ -30,7 +30,10 @@ class CatalogDao {
   // Outbox
   // ======================================================================
 
-  Future<void> _enqueue({
+  /// Records an outbox operation; returns the operation id that now carries
+  /// this change (an existing one when merged), or null when the change
+  /// cancelled a never-synced insert.
+  Future<String?> _enqueue({
     required String libraryId,
     required String entityType,
     required String entityId,
@@ -54,7 +57,7 @@ class CatalogDao {
     final pendingInsert = find('insert');
     final pendingUpdate = find('update');
 
-    Future<void> merge(SyncQueueEntry e) async {
+    Future<String> merge(SyncQueueEntry e) async {
       final merged = {...(jsonDecode(e.payload) as Map<String, dynamic>), ...payload};
       final oldMeta = e.meta == null ? null : jsonDecode(e.meta!) as Map<String, dynamic>;
       final newMeta = meta == null ? oldMeta : {...?oldMeta, ...meta};
@@ -65,6 +68,7 @@ class CatalogDao {
           updatedAt: Value(now),
         ),
       );
+      return e.operationId;
     }
 
     if (op == 'update') {
@@ -76,7 +80,11 @@ class CatalogDao {
         await (_db.delete(_db.syncQueue)
               ..where((q) => q.libraryId.equals(libraryId) & q.entityId.equals(entityId) & q.state.equals('pending')))
             .go();
-        return;
+        // The record never reached the server: its provisional ledger goes too.
+        await (_db.delete(_db.localStockMovements)
+              ..where((m) => m.libraryId.equals(libraryId) & m.copyId.equals(entityId) & m.provisional.equals(true)))
+            .go();
+        return null;
       }
       if (pendingUpdate != null) {
         serverVersion = pendingUpdate.baseVersion;
@@ -84,8 +92,9 @@ class CatalogDao {
       }
     }
 
+    final operationId = _uuid.v4();
     await _db.into(_db.syncQueue).insert(SyncQueueCompanion.insert(
-          operationId: _uuid.v4(),
+          operationId: operationId,
           libraryId: libraryId,
           entityType: entityType,
           entityId: entityId,
@@ -95,6 +104,36 @@ class CatalogDao {
           meta: Value(meta == null ? null : jsonEncode(meta)),
           createdAt: now,
           updatedAt: now,
+        ));
+    return operationId;
+  }
+
+  /// Provisional ledger row for a local copy change (see [copyMovement]).
+  Future<void> _recordMovement({
+    required String libraryId,
+    required String copyId,
+    required String? operationId,
+    required CopySnapshot? before,
+    required CopySnapshot after,
+    Map<String, dynamic>? meta,
+  }) async {
+    if (operationId == null) return;
+    final m = copyMovement(before: before, after: after);
+    if (m == null) return;
+    await _db.into(_db.localStockMovements).insert(LocalStockMovementsCompanion.insert(
+          id: _uuid.v4(),
+          libraryId: libraryId,
+          copyId: copyId,
+          movementType: m.type,
+          quantity: m.quantity,
+          fromStatus: Value(before?.status),
+          toStatus: Value(after.status),
+          fromLocationId: Value(before?.locationId),
+          toLocationId: Value(after.locationId),
+          referenceNumber: Value(meta?['reference_number'] as String?),
+          remarks: Value(meta?['remarks'] as String?),
+          createdAt: DateTime.now(),
+          operationId: Value(operationId),
         ));
   }
 
@@ -577,12 +616,19 @@ class CatalogDao {
           createdAt: now,
           updatedAt: now,
         ));
-    await _enqueue(
+    final opId = await _enqueue(
         libraryId: libraryId,
         entityType: 'book_copies',
         entityId: id,
         op: 'insert',
         payload: _copyPayload(bookId, i),
+        meta: meta?.toJson());
+    await _recordMovement(
+        libraryId: libraryId,
+        copyId: id,
+        operationId: opId,
+        before: null,
+        after: CopySnapshot(status: i.status.value, locationId: i.locationId, condition: i.condition.value),
         meta: meta?.toJson());
     return id;
   }
@@ -614,7 +660,7 @@ class CatalogDao {
             updatedAt: Value(DateTime.now()),
           ),
         );
-        await _enqueue(
+        final opId = await _enqueue(
             libraryId: libraryId,
             entityType: 'book_copies',
             entityId: id,
@@ -622,10 +668,81 @@ class CatalogDao {
             payload: _copyPayload(row.bookId, input),
             serverVersion: row.serverVersion,
             meta: meta?.toJson());
+        await _recordMovement(
+            libraryId: libraryId,
+            copyId: id,
+            operationId: opId,
+            before: CopySnapshot.of(row),
+            after: CopySnapshot(status: input.status.value, locationId: input.locationId, condition: input.condition.value),
+            meta: meta?.toJson());
       });
 
-  Future<void> deleteCopy(String libraryId, String id) =>
-      _softDelete(_db.localBookCopies, 'book_copies', libraryId, id);
+  Future<void> deleteCopy(String libraryId, String id, {MovementMeta? meta}) => _db.transaction(() async {
+        final row = await _requireRow(_db.localBookCopies, libraryId, id);
+        final opId = await _softDelete(_db.localBookCopies, 'book_copies', libraryId, id, meta: meta?.toJson());
+        final before = CopySnapshot.of(row);
+        await _recordMovement(
+            libraryId: libraryId,
+            copyId: id,
+            operationId: opId,
+            before: before,
+            after: CopySnapshot(status: row.status, locationId: row.locationId, condition: row.condition, deleted: true),
+            meta: meta?.toJson());
+      });
+
+  static CopyInput _inputFrom(LocalBookCopy r) => CopyInput(
+        barcode: r.barcode,
+        accessionNumber: r.accessionNumber,
+        condition: CopyCondition.parse(r.condition),
+        status: CopyStatus.parse(r.status),
+        locationId: r.locationId,
+        acquisitionDate: r.acquisitionDate,
+        acquisitionSource: AcquisitionSource.tryParse(r.acquisitionSource),
+        acquisitionCostCents: r.acquisitionCostCents,
+        remarks: r.remarks,
+      );
+
+  /// Bulk inventory change (mark damaged/lost/inactive, relocate, adjust
+  /// condition) for many copies in ONE transaction: either every copy is
+  /// changed (each with its own outbox op + ledger row) or none is.
+  /// Copies already in the requested state are skipped. Returns the number
+  /// of copies changed.
+  Future<int> applyInventoryChange(
+    String libraryId,
+    List<String> copyIds, {
+    CopyStatus? status,
+    String? locationId,
+    bool setLocation = false,
+    CopyCondition? condition,
+    MovementMeta? meta,
+  }) =>
+      _db.transaction(() async {
+        var changed = 0;
+        for (final id in copyIds.toSet()) {
+          final row = await _requireRow(_db.localBookCopies, libraryId, id);
+          if (row.deletedAt != null) {
+            throw AppFailure('Naskhah ${row.barcode} telah dipadam.', code: 'copy_deleted');
+          }
+          final cur = _inputFrom(row);
+          final next = CopyInput(
+            barcode: cur.barcode,
+            accessionNumber: cur.accessionNumber,
+            condition: condition ?? cur.condition,
+            status: status ?? cur.status,
+            locationId: setLocation ? locationId : cur.locationId,
+            acquisitionDate: cur.acquisitionDate,
+            acquisitionSource: cur.acquisitionSource,
+            acquisitionCostCents: cur.acquisitionCostCents,
+            remarks: cur.remarks,
+          );
+          if (next.status == cur.status && next.locationId == cur.locationId && next.condition == cur.condition) {
+            continue;
+          }
+          await updateCopy(libraryId, id, next, meta: meta);
+          changed++;
+        }
+        return changed;
+      });
 
   /// Next system barcode for this device. The per-library counter lives in
   /// key_values; candidates already used locally are skipped.
@@ -665,7 +782,8 @@ class CatalogDao {
     return table.map(row.data);
   }
 
-  Future<void> _softDelete<T extends Table, D>(TableInfo<T, D> table, String entity, String libraryId, String id) =>
+  Future<String?> _softDelete<T extends Table, D>(TableInfo<T, D> table, String entity, String libraryId, String id,
+          {Map<String, dynamic>? meta}) =>
       _db.transaction(() async {
         final row = await _db.customSelect(
           'SELECT server_version FROM ${table.actualTableName} WHERE id = ? AND library_id = ? AND deleted_at IS NULL',
@@ -687,7 +805,42 @@ class CatalogDao {
           ],
           updates: {table},
         );
-        await _enqueue(
-            libraryId: libraryId, entityType: entity, entityId: id, op: 'delete', payload: const {}, serverVersion: serverVersion);
+        return _enqueue(
+            libraryId: libraryId,
+            entityType: entity,
+            entityId: id,
+            op: 'delete',
+            payload: const {},
+            serverVersion: serverVersion,
+            meta: meta);
       });
+}
+
+/// Minimal copy state used to derive inventory movements.
+class CopySnapshot {
+  const CopySnapshot({required this.status, this.locationId, required this.condition, this.deleted = false});
+  factory CopySnapshot.of(LocalBookCopy c) =>
+      CopySnapshot(status: c.status, locationId: c.locationId, condition: c.condition, deleted: c.deletedAt != null);
+
+  final String status;
+  final String? locationId;
+  final String condition;
+  final bool deleted;
+
+  /// Physically present and usable.
+  bool get inStock => !deleted && (status == 'available' || status == 'in_processing');
+}
+
+/// Movement for a copy change. MUST match the server trigger
+/// private.tg_copy_stock_movement (supabase/migrations/…0400): same types,
+/// same precedence, same quantity rule (+1/−1/0 change of "in stock").
+({String type, int quantity})? copyMovement({required CopySnapshot? before, required CopySnapshot after}) {
+  if (before == null) return (type: 'acquisition', quantity: after.inStock ? 1 : 0);
+  final qty = (after.inStock ? 1 : 0) - (before.inStock ? 1 : 0);
+  if (!before.deleted && after.deleted) return (type: 'removal', quantity: qty);
+  if (before.deleted && !after.deleted) return (type: 'restoration', quantity: qty);
+  if (after.status != before.status) return (type: 'status_change', quantity: qty);
+  if (after.locationId != before.locationId) return (type: 'relocation', quantity: qty);
+  if (after.condition != before.condition) return (type: 'adjustment', quantity: qty);
+  return null;
 }

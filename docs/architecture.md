@@ -119,6 +119,27 @@ belah (`test/unit/catalog_dao_test.dart` dan
 - **Kulit buku**: URL https daripada metadata; muat naik gambar ke Storage
   belum dibina.
 
+## Inventori (Fasa 5)
+
+- **Stok tidak pernah disimpan sebagai kaunter.** Jumlah stok sentiasa dikira
+  daripada `book_copies` (status + `deleted_at`), jadi tiada corak
+  "baca jumlah → tambah → simpan" yang boleh rosak apabila ramai pengguna
+  serentak. Lejar `stock_movements` hanya rekod peristiwa (append-only); jumlah
+  kuantitinya sama dengan stok semasa (diuji di `60_inventory.sql`).
+- **Pergerakan sementara (provisional)** dalam Drift (`local_stock_movements`,
+  skema v2) direkod pada peranti mengikut peraturan yang SAMA dengan trigger
+  pelayan (`copyMovement()` ↔ `tg_copy_stock_movement`, diuji dengan jadual
+  kes yang sama di Dart dan SQL). Setiap baris dikaitkan dengan `operation_id`
+  outbox; Fasa 6 akan menggantikannya dengan baris pelayan selepas disahkan.
+- **Perubahan pukal** (tukar status, pindah lokasi, keadaan) dalam satu
+  transaksi tempatan – semua atau tiada.
+- **Semakan stok** per lokasi rak: imbasan disimpan selepas setiap imbasan
+  (selamat jika aplikasi ditutup); di akhir, naskhah tidak dijumpai boleh
+  ditanda Hilang dan naskhah di rak salah boleh dipindahkan – dengan rujukan
+  "Semakan stok <tarikh>" pada setiap pergerakan.
+- Pelayan: `created_at` lejar/audit kini `clock_timestamp()` supaya susunan
+  sejarah dalam satu batch sync adalah tepat (migration 0900).
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |

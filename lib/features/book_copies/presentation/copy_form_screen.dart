@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../app/router/routes.dart';
 import '../../../core/utils/barcode.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../shared/models/catalog_models.dart';
@@ -148,6 +149,12 @@ class _CopyFormScreenState extends ConsumerState<CopyFormScreen> {
       appBar: AppBar(
         title: Text(_isEdit ? 'Edit Naskhah' : 'Tambah Naskhah'),
         actions: [
+          if (_isEdit)
+            IconButton(
+              tooltip: 'Sejarah pergerakan stok',
+              icon: const Icon(Icons.timeline),
+              onPressed: () => context.push(Routes.copyMovements(_current!.id)),
+            ),
           if (_isEdit && perms.canEditCatalog)
             IconButton(tooltip: 'Padam naskhah', icon: const Icon(Icons.delete_outline), onPressed: _delete),
         ],

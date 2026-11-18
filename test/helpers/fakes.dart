@@ -55,6 +55,24 @@ class FakeLibraryRepository implements LibraryRepository {
   Future<void> update(String libraryId, LibraryDetails details) async {}
 }
 
+class FakeActivityRepository implements ActivityRepository {
+  bool offline = false;
+  final entries = <ActivityEntry>[];
+
+  @override
+  Future<List<ActivityEntry>> historyFor(String libraryId, String entityId) async =>
+      offline ? throw const AppFailure('Tiada sambungan internet.', code: 'offline') : const [];
+
+  @override
+  Future<List<ActivityEntry>> libraryFeed(String libraryId, {DateTime? before, String? entityType, int limit = 50}) async {
+    if (offline) throw const AppFailure('Tiada sambungan internet.', code: 'offline');
+    return entries.where((e) => entityType == null || e.entityType == entityType).toList();
+  }
+
+  @override
+  Future<Map<String, String>> userNames(Set<String> userIds) async => {for (final id in userIds) id: 'Pengguna $id'};
+}
+
 class FakeDashboardRepository implements DashboardRepository {
   final requested = <String>[];
 
@@ -91,7 +109,8 @@ class TestHarness {
         devices = MockDevices(),
         members = MockMembers(),
         libraries = FakeLibraryRepository(server ?? [libA(), libB()], superAdmin: superAdmin),
-        dashboard = FakeDashboardRepository() {
+        dashboard = FakeDashboardRepository(),
+        activity = FakeActivityRepository() {
     setUser(userId);
     when(() => auth.authEvents).thenAnswer((_) => const Stream.empty());
     when(() => devices.register(
@@ -107,6 +126,7 @@ class TestHarness {
   final MockMembers members;
   final FakeLibraryRepository libraries;
   final FakeDashboardRepository dashboard;
+  final FakeActivityRepository activity;
   final bool online;
 
   void setUser(String? id) => when(() => auth.currentUser).thenReturn(id == null ? null : fakeUser(id));
@@ -118,6 +138,7 @@ class TestHarness {
         membersRepositoryProvider.overrideWithValue(members),
         libraryRepositoryProvider.overrideWithValue(libraries),
         dashboardRepositoryProvider.overrideWithValue(dashboard),
+        activityRepositoryProvider.overrideWithValue(activity),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
         // Never hit the real internet in tests: metadata lookups "not found".

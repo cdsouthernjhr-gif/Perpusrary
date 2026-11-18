@@ -119,6 +119,35 @@ class LocalBookCopies extends Table with SyncColumns {
       ];
 }
 
+/// Inventory ledger mirror. Rows come from two places:
+///  * provisional=true  – recorded on this device when a local change is made
+///    (same rules as the server trigger), tied to the outbox [operationId];
+///  * provisional=false – authoritative rows pulled from the server (Phase 6).
+/// When the server confirms an operation, its provisional rows are replaced
+/// by the server's rows. Counts are never stored: stock is always computed
+/// from book_copies, so there is no read-modify-write of stock totals.
+@DataClassName('LocalStockMovement')
+class LocalStockMovements extends Table {
+  TextColumn get id => text()();
+  TextColumn get libraryId => text()();
+  TextColumn get copyId => text()();
+  TextColumn get movementType => text()();
+  IntColumn get quantity => integer()();
+  TextColumn get fromStatus => text().nullable()();
+  TextColumn get toStatus => text().nullable()();
+  TextColumn get fromLocationId => text().nullable()();
+  TextColumn get toLocationId => text().nullable()();
+  TextColumn get referenceNumber => text().nullable()();
+  TextColumn get remarks => text().nullable()();
+  TextColumn get createdBy => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get provisional => boolean().withDefault(const Constant(true))();
+  TextColumn get operationId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// Outbox of local changes. operationId is the server idempotency key, so a
 /// retried operation is never applied twice.
 @DataClassName('SyncQueueEntry')

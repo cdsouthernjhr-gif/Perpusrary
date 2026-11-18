@@ -16,7 +16,12 @@ import '../../features/books/presentation/book_form_screen.dart';
 import '../../features/books/presentation/books_screen.dart';
 import '../../features/categories/presentation/categories_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/inventory/presentation/bulk_inventory_screen.dart';
+import '../../features/inventory/presentation/inventory_screen.dart';
+import '../../features/inventory/presentation/movements_screen.dart';
+import '../../features/inventory/presentation/stocktake_screen.dart';
 import '../../features/locations/presentation/locations_screen.dart';
+import '../../features/reports/presentation/activity_screen.dart';
 import '../../features/libraries/application/library_context.dart';
 import '../../features/libraries/presentation/library_form_screen.dart';
 import '../../features/libraries/presentation/library_switcher_screen.dart';
@@ -84,6 +89,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.barcode, builder: (_, _) => const BarcodeLookupScreen()),
       GoRoute(path: Routes.categories, builder: (_, _) => const CategoriesScreen()),
       GoRoute(path: Routes.locations, builder: (_, _) => const LocationsScreen()),
+      GoRoute(path: Routes.inventory, builder: (_, _) => const InventoryScreen()),
+      GoRoute(path: Routes.inventoryStatus, builder: (_, _) => const BulkInventoryScreen(mode: BulkMode.status)),
+      GoRoute(path: Routes.inventoryRelocate, builder: (_, _) => const BulkInventoryScreen(mode: BulkMode.relocate)),
+      GoRoute(path: Routes.stocktake, builder: (_, _) => const StocktakeScreen()),
+      GoRoute(
+        path: Routes.movements,
+        builder: (_, s) => MovementsScreen(copyId: s.uri.queryParameters['copy']),
+      ),
+      GoRoute(path: Routes.activity, builder: (_, _) => const ActivityScreen()),
       GoRoute(
         path: Routes.scanner,
         builder: (_, s) => ScannerScreen(mode: s.extra as ScanMode? ?? ScanMode.copyBarcode),

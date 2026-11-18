@@ -4372,6 +4372,898 @@ class LocalBookCopiesCompanion extends UpdateCompanion<LocalBookCopy> {
   }
 }
 
+class $LocalStockMovementsTable extends LocalStockMovements
+    with TableInfo<$LocalStockMovementsTable, LocalStockMovement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalStockMovementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _libraryIdMeta = const VerificationMeta(
+    'libraryId',
+  );
+  @override
+  late final GeneratedColumn<String> libraryId = GeneratedColumn<String>(
+    'library_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _copyIdMeta = const VerificationMeta('copyId');
+  @override
+  late final GeneratedColumn<String> copyId = GeneratedColumn<String>(
+    'copy_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _movementTypeMeta = const VerificationMeta(
+    'movementType',
+  );
+  @override
+  late final GeneratedColumn<String> movementType = GeneratedColumn<String>(
+    'movement_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fromStatusMeta = const VerificationMeta(
+    'fromStatus',
+  );
+  @override
+  late final GeneratedColumn<String> fromStatus = GeneratedColumn<String>(
+    'from_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _toStatusMeta = const VerificationMeta(
+    'toStatus',
+  );
+  @override
+  late final GeneratedColumn<String> toStatus = GeneratedColumn<String>(
+    'to_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fromLocationIdMeta = const VerificationMeta(
+    'fromLocationId',
+  );
+  @override
+  late final GeneratedColumn<String> fromLocationId = GeneratedColumn<String>(
+    'from_location_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _toLocationIdMeta = const VerificationMeta(
+    'toLocationId',
+  );
+  @override
+  late final GeneratedColumn<String> toLocationId = GeneratedColumn<String>(
+    'to_location_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _referenceNumberMeta = const VerificationMeta(
+    'referenceNumber',
+  );
+  @override
+  late final GeneratedColumn<String> referenceNumber = GeneratedColumn<String>(
+    'reference_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remarksMeta = const VerificationMeta(
+    'remarks',
+  );
+  @override
+  late final GeneratedColumn<String> remarks = GeneratedColumn<String>(
+    'remarks',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdByMeta = const VerificationMeta(
+    'createdBy',
+  );
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+    'created_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _provisionalMeta = const VerificationMeta(
+    'provisional',
+  );
+  @override
+  late final GeneratedColumn<bool> provisional = GeneratedColumn<bool>(
+    'provisional',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("provisional" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _operationIdMeta = const VerificationMeta(
+    'operationId',
+  );
+  @override
+  late final GeneratedColumn<String> operationId = GeneratedColumn<String>(
+    'operation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    libraryId,
+    copyId,
+    movementType,
+    quantity,
+    fromStatus,
+    toStatus,
+    fromLocationId,
+    toLocationId,
+    referenceNumber,
+    remarks,
+    createdBy,
+    createdAt,
+    provisional,
+    operationId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_stock_movements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalStockMovement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('library_id')) {
+      context.handle(
+        _libraryIdMeta,
+        libraryId.isAcceptableOrUnknown(data['library_id']!, _libraryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_libraryIdMeta);
+    }
+    if (data.containsKey('copy_id')) {
+      context.handle(
+        _copyIdMeta,
+        copyId.isAcceptableOrUnknown(data['copy_id']!, _copyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_copyIdMeta);
+    }
+    if (data.containsKey('movement_type')) {
+      context.handle(
+        _movementTypeMeta,
+        movementType.isAcceptableOrUnknown(
+          data['movement_type']!,
+          _movementTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_movementTypeMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
+    }
+    if (data.containsKey('from_status')) {
+      context.handle(
+        _fromStatusMeta,
+        fromStatus.isAcceptableOrUnknown(data['from_status']!, _fromStatusMeta),
+      );
+    }
+    if (data.containsKey('to_status')) {
+      context.handle(
+        _toStatusMeta,
+        toStatus.isAcceptableOrUnknown(data['to_status']!, _toStatusMeta),
+      );
+    }
+    if (data.containsKey('from_location_id')) {
+      context.handle(
+        _fromLocationIdMeta,
+        fromLocationId.isAcceptableOrUnknown(
+          data['from_location_id']!,
+          _fromLocationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('to_location_id')) {
+      context.handle(
+        _toLocationIdMeta,
+        toLocationId.isAcceptableOrUnknown(
+          data['to_location_id']!,
+          _toLocationIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reference_number')) {
+      context.handle(
+        _referenceNumberMeta,
+        referenceNumber.isAcceptableOrUnknown(
+          data['reference_number']!,
+          _referenceNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remarks')) {
+      context.handle(
+        _remarksMeta,
+        remarks.isAcceptableOrUnknown(data['remarks']!, _remarksMeta),
+      );
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(
+        _createdByMeta,
+        createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('provisional')) {
+      context.handle(
+        _provisionalMeta,
+        provisional.isAcceptableOrUnknown(
+          data['provisional']!,
+          _provisionalMeta,
+        ),
+      );
+    }
+    if (data.containsKey('operation_id')) {
+      context.handle(
+        _operationIdMeta,
+        operationId.isAcceptableOrUnknown(
+          data['operation_id']!,
+          _operationIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalStockMovement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalStockMovement(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      libraryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}library_id'],
+      )!,
+      copyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}copy_id'],
+      )!,
+      movementType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}movement_type'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quantity'],
+      )!,
+      fromStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_status'],
+      ),
+      toStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}to_status'],
+      ),
+      fromLocationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_location_id'],
+      ),
+      toLocationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}to_location_id'],
+      ),
+      referenceNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reference_number'],
+      ),
+      remarks: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remarks'],
+      ),
+      createdBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_by'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      provisional: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}provisional'],
+      )!,
+      operationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_id'],
+      ),
+    );
+  }
+
+  @override
+  $LocalStockMovementsTable createAlias(String alias) {
+    return $LocalStockMovementsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalStockMovement extends DataClass
+    implements Insertable<LocalStockMovement> {
+  final String id;
+  final String libraryId;
+  final String copyId;
+  final String movementType;
+  final int quantity;
+  final String? fromStatus;
+  final String? toStatus;
+  final String? fromLocationId;
+  final String? toLocationId;
+  final String? referenceNumber;
+  final String? remarks;
+  final String? createdBy;
+  final DateTime createdAt;
+  final bool provisional;
+  final String? operationId;
+  const LocalStockMovement({
+    required this.id,
+    required this.libraryId,
+    required this.copyId,
+    required this.movementType,
+    required this.quantity,
+    this.fromStatus,
+    this.toStatus,
+    this.fromLocationId,
+    this.toLocationId,
+    this.referenceNumber,
+    this.remarks,
+    this.createdBy,
+    required this.createdAt,
+    required this.provisional,
+    this.operationId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['library_id'] = Variable<String>(libraryId);
+    map['copy_id'] = Variable<String>(copyId);
+    map['movement_type'] = Variable<String>(movementType);
+    map['quantity'] = Variable<int>(quantity);
+    if (!nullToAbsent || fromStatus != null) {
+      map['from_status'] = Variable<String>(fromStatus);
+    }
+    if (!nullToAbsent || toStatus != null) {
+      map['to_status'] = Variable<String>(toStatus);
+    }
+    if (!nullToAbsent || fromLocationId != null) {
+      map['from_location_id'] = Variable<String>(fromLocationId);
+    }
+    if (!nullToAbsent || toLocationId != null) {
+      map['to_location_id'] = Variable<String>(toLocationId);
+    }
+    if (!nullToAbsent || referenceNumber != null) {
+      map['reference_number'] = Variable<String>(referenceNumber);
+    }
+    if (!nullToAbsent || remarks != null) {
+      map['remarks'] = Variable<String>(remarks);
+    }
+    if (!nullToAbsent || createdBy != null) {
+      map['created_by'] = Variable<String>(createdBy);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['provisional'] = Variable<bool>(provisional);
+    if (!nullToAbsent || operationId != null) {
+      map['operation_id'] = Variable<String>(operationId);
+    }
+    return map;
+  }
+
+  LocalStockMovementsCompanion toCompanion(bool nullToAbsent) {
+    return LocalStockMovementsCompanion(
+      id: Value(id),
+      libraryId: Value(libraryId),
+      copyId: Value(copyId),
+      movementType: Value(movementType),
+      quantity: Value(quantity),
+      fromStatus: fromStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromStatus),
+      toStatus: toStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toStatus),
+      fromLocationId: fromLocationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromLocationId),
+      toLocationId: toLocationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toLocationId),
+      referenceNumber: referenceNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(referenceNumber),
+      remarks: remarks == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remarks),
+      createdBy: createdBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdBy),
+      createdAt: Value(createdAt),
+      provisional: Value(provisional),
+      operationId: operationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(operationId),
+    );
+  }
+
+  factory LocalStockMovement.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalStockMovement(
+      id: serializer.fromJson<String>(json['id']),
+      libraryId: serializer.fromJson<String>(json['libraryId']),
+      copyId: serializer.fromJson<String>(json['copyId']),
+      movementType: serializer.fromJson<String>(json['movementType']),
+      quantity: serializer.fromJson<int>(json['quantity']),
+      fromStatus: serializer.fromJson<String?>(json['fromStatus']),
+      toStatus: serializer.fromJson<String?>(json['toStatus']),
+      fromLocationId: serializer.fromJson<String?>(json['fromLocationId']),
+      toLocationId: serializer.fromJson<String?>(json['toLocationId']),
+      referenceNumber: serializer.fromJson<String?>(json['referenceNumber']),
+      remarks: serializer.fromJson<String?>(json['remarks']),
+      createdBy: serializer.fromJson<String?>(json['createdBy']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      provisional: serializer.fromJson<bool>(json['provisional']),
+      operationId: serializer.fromJson<String?>(json['operationId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'libraryId': serializer.toJson<String>(libraryId),
+      'copyId': serializer.toJson<String>(copyId),
+      'movementType': serializer.toJson<String>(movementType),
+      'quantity': serializer.toJson<int>(quantity),
+      'fromStatus': serializer.toJson<String?>(fromStatus),
+      'toStatus': serializer.toJson<String?>(toStatus),
+      'fromLocationId': serializer.toJson<String?>(fromLocationId),
+      'toLocationId': serializer.toJson<String?>(toLocationId),
+      'referenceNumber': serializer.toJson<String?>(referenceNumber),
+      'remarks': serializer.toJson<String?>(remarks),
+      'createdBy': serializer.toJson<String?>(createdBy),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'provisional': serializer.toJson<bool>(provisional),
+      'operationId': serializer.toJson<String?>(operationId),
+    };
+  }
+
+  LocalStockMovement copyWith({
+    String? id,
+    String? libraryId,
+    String? copyId,
+    String? movementType,
+    int? quantity,
+    Value<String?> fromStatus = const Value.absent(),
+    Value<String?> toStatus = const Value.absent(),
+    Value<String?> fromLocationId = const Value.absent(),
+    Value<String?> toLocationId = const Value.absent(),
+    Value<String?> referenceNumber = const Value.absent(),
+    Value<String?> remarks = const Value.absent(),
+    Value<String?> createdBy = const Value.absent(),
+    DateTime? createdAt,
+    bool? provisional,
+    Value<String?> operationId = const Value.absent(),
+  }) => LocalStockMovement(
+    id: id ?? this.id,
+    libraryId: libraryId ?? this.libraryId,
+    copyId: copyId ?? this.copyId,
+    movementType: movementType ?? this.movementType,
+    quantity: quantity ?? this.quantity,
+    fromStatus: fromStatus.present ? fromStatus.value : this.fromStatus,
+    toStatus: toStatus.present ? toStatus.value : this.toStatus,
+    fromLocationId: fromLocationId.present
+        ? fromLocationId.value
+        : this.fromLocationId,
+    toLocationId: toLocationId.present ? toLocationId.value : this.toLocationId,
+    referenceNumber: referenceNumber.present
+        ? referenceNumber.value
+        : this.referenceNumber,
+    remarks: remarks.present ? remarks.value : this.remarks,
+    createdBy: createdBy.present ? createdBy.value : this.createdBy,
+    createdAt: createdAt ?? this.createdAt,
+    provisional: provisional ?? this.provisional,
+    operationId: operationId.present ? operationId.value : this.operationId,
+  );
+  LocalStockMovement copyWithCompanion(LocalStockMovementsCompanion data) {
+    return LocalStockMovement(
+      id: data.id.present ? data.id.value : this.id,
+      libraryId: data.libraryId.present ? data.libraryId.value : this.libraryId,
+      copyId: data.copyId.present ? data.copyId.value : this.copyId,
+      movementType: data.movementType.present
+          ? data.movementType.value
+          : this.movementType,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      fromStatus: data.fromStatus.present
+          ? data.fromStatus.value
+          : this.fromStatus,
+      toStatus: data.toStatus.present ? data.toStatus.value : this.toStatus,
+      fromLocationId: data.fromLocationId.present
+          ? data.fromLocationId.value
+          : this.fromLocationId,
+      toLocationId: data.toLocationId.present
+          ? data.toLocationId.value
+          : this.toLocationId,
+      referenceNumber: data.referenceNumber.present
+          ? data.referenceNumber.value
+          : this.referenceNumber,
+      remarks: data.remarks.present ? data.remarks.value : this.remarks,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      provisional: data.provisional.present
+          ? data.provisional.value
+          : this.provisional,
+      operationId: data.operationId.present
+          ? data.operationId.value
+          : this.operationId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalStockMovement(')
+          ..write('id: $id, ')
+          ..write('libraryId: $libraryId, ')
+          ..write('copyId: $copyId, ')
+          ..write('movementType: $movementType, ')
+          ..write('quantity: $quantity, ')
+          ..write('fromStatus: $fromStatus, ')
+          ..write('toStatus: $toStatus, ')
+          ..write('fromLocationId: $fromLocationId, ')
+          ..write('toLocationId: $toLocationId, ')
+          ..write('referenceNumber: $referenceNumber, ')
+          ..write('remarks: $remarks, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('provisional: $provisional, ')
+          ..write('operationId: $operationId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    libraryId,
+    copyId,
+    movementType,
+    quantity,
+    fromStatus,
+    toStatus,
+    fromLocationId,
+    toLocationId,
+    referenceNumber,
+    remarks,
+    createdBy,
+    createdAt,
+    provisional,
+    operationId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalStockMovement &&
+          other.id == this.id &&
+          other.libraryId == this.libraryId &&
+          other.copyId == this.copyId &&
+          other.movementType == this.movementType &&
+          other.quantity == this.quantity &&
+          other.fromStatus == this.fromStatus &&
+          other.toStatus == this.toStatus &&
+          other.fromLocationId == this.fromLocationId &&
+          other.toLocationId == this.toLocationId &&
+          other.referenceNumber == this.referenceNumber &&
+          other.remarks == this.remarks &&
+          other.createdBy == this.createdBy &&
+          other.createdAt == this.createdAt &&
+          other.provisional == this.provisional &&
+          other.operationId == this.operationId);
+}
+
+class LocalStockMovementsCompanion extends UpdateCompanion<LocalStockMovement> {
+  final Value<String> id;
+  final Value<String> libraryId;
+  final Value<String> copyId;
+  final Value<String> movementType;
+  final Value<int> quantity;
+  final Value<String?> fromStatus;
+  final Value<String?> toStatus;
+  final Value<String?> fromLocationId;
+  final Value<String?> toLocationId;
+  final Value<String?> referenceNumber;
+  final Value<String?> remarks;
+  final Value<String?> createdBy;
+  final Value<DateTime> createdAt;
+  final Value<bool> provisional;
+  final Value<String?> operationId;
+  final Value<int> rowid;
+  const LocalStockMovementsCompanion({
+    this.id = const Value.absent(),
+    this.libraryId = const Value.absent(),
+    this.copyId = const Value.absent(),
+    this.movementType = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.fromStatus = const Value.absent(),
+    this.toStatus = const Value.absent(),
+    this.fromLocationId = const Value.absent(),
+    this.toLocationId = const Value.absent(),
+    this.referenceNumber = const Value.absent(),
+    this.remarks = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.provisional = const Value.absent(),
+    this.operationId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalStockMovementsCompanion.insert({
+    required String id,
+    required String libraryId,
+    required String copyId,
+    required String movementType,
+    required int quantity,
+    this.fromStatus = const Value.absent(),
+    this.toStatus = const Value.absent(),
+    this.fromLocationId = const Value.absent(),
+    this.toLocationId = const Value.absent(),
+    this.referenceNumber = const Value.absent(),
+    this.remarks = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    required DateTime createdAt,
+    this.provisional = const Value.absent(),
+    this.operationId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       libraryId = Value(libraryId),
+       copyId = Value(copyId),
+       movementType = Value(movementType),
+       quantity = Value(quantity),
+       createdAt = Value(createdAt);
+  static Insertable<LocalStockMovement> custom({
+    Expression<String>? id,
+    Expression<String>? libraryId,
+    Expression<String>? copyId,
+    Expression<String>? movementType,
+    Expression<int>? quantity,
+    Expression<String>? fromStatus,
+    Expression<String>? toStatus,
+    Expression<String>? fromLocationId,
+    Expression<String>? toLocationId,
+    Expression<String>? referenceNumber,
+    Expression<String>? remarks,
+    Expression<String>? createdBy,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? provisional,
+    Expression<String>? operationId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (libraryId != null) 'library_id': libraryId,
+      if (copyId != null) 'copy_id': copyId,
+      if (movementType != null) 'movement_type': movementType,
+      if (quantity != null) 'quantity': quantity,
+      if (fromStatus != null) 'from_status': fromStatus,
+      if (toStatus != null) 'to_status': toStatus,
+      if (fromLocationId != null) 'from_location_id': fromLocationId,
+      if (toLocationId != null) 'to_location_id': toLocationId,
+      if (referenceNumber != null) 'reference_number': referenceNumber,
+      if (remarks != null) 'remarks': remarks,
+      if (createdBy != null) 'created_by': createdBy,
+      if (createdAt != null) 'created_at': createdAt,
+      if (provisional != null) 'provisional': provisional,
+      if (operationId != null) 'operation_id': operationId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalStockMovementsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? libraryId,
+    Value<String>? copyId,
+    Value<String>? movementType,
+    Value<int>? quantity,
+    Value<String?>? fromStatus,
+    Value<String?>? toStatus,
+    Value<String?>? fromLocationId,
+    Value<String?>? toLocationId,
+    Value<String?>? referenceNumber,
+    Value<String?>? remarks,
+    Value<String?>? createdBy,
+    Value<DateTime>? createdAt,
+    Value<bool>? provisional,
+    Value<String?>? operationId,
+    Value<int>? rowid,
+  }) {
+    return LocalStockMovementsCompanion(
+      id: id ?? this.id,
+      libraryId: libraryId ?? this.libraryId,
+      copyId: copyId ?? this.copyId,
+      movementType: movementType ?? this.movementType,
+      quantity: quantity ?? this.quantity,
+      fromStatus: fromStatus ?? this.fromStatus,
+      toStatus: toStatus ?? this.toStatus,
+      fromLocationId: fromLocationId ?? this.fromLocationId,
+      toLocationId: toLocationId ?? this.toLocationId,
+      referenceNumber: referenceNumber ?? this.referenceNumber,
+      remarks: remarks ?? this.remarks,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      provisional: provisional ?? this.provisional,
+      operationId: operationId ?? this.operationId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (libraryId.present) {
+      map['library_id'] = Variable<String>(libraryId.value);
+    }
+    if (copyId.present) {
+      map['copy_id'] = Variable<String>(copyId.value);
+    }
+    if (movementType.present) {
+      map['movement_type'] = Variable<String>(movementType.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<int>(quantity.value);
+    }
+    if (fromStatus.present) {
+      map['from_status'] = Variable<String>(fromStatus.value);
+    }
+    if (toStatus.present) {
+      map['to_status'] = Variable<String>(toStatus.value);
+    }
+    if (fromLocationId.present) {
+      map['from_location_id'] = Variable<String>(fromLocationId.value);
+    }
+    if (toLocationId.present) {
+      map['to_location_id'] = Variable<String>(toLocationId.value);
+    }
+    if (referenceNumber.present) {
+      map['reference_number'] = Variable<String>(referenceNumber.value);
+    }
+    if (remarks.present) {
+      map['remarks'] = Variable<String>(remarks.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (provisional.present) {
+      map['provisional'] = Variable<bool>(provisional.value);
+    }
+    if (operationId.present) {
+      map['operation_id'] = Variable<String>(operationId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalStockMovementsCompanion(')
+          ..write('id: $id, ')
+          ..write('libraryId: $libraryId, ')
+          ..write('copyId: $copyId, ')
+          ..write('movementType: $movementType, ')
+          ..write('quantity: $quantity, ')
+          ..write('fromStatus: $fromStatus, ')
+          ..write('toStatus: $toStatus, ')
+          ..write('fromLocationId: $fromLocationId, ')
+          ..write('toLocationId: $toLocationId, ')
+          ..write('referenceNumber: $referenceNumber, ')
+          ..write('remarks: $remarks, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('provisional: $provisional, ')
+          ..write('operationId: $operationId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncQueueTable extends SyncQueue
     with TableInfo<$SyncQueueTable, SyncQueueEntry> {
   @override
@@ -5650,6 +6542,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LocalBookCopiesTable localBookCopies = $LocalBookCopiesTable(
     this,
   );
+  late final $LocalStockMovementsTable localStockMovements =
+      $LocalStockMovementsTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   @override
@@ -5663,6 +6557,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     localLocations,
     localBooks,
     localBookCopies,
+    localStockMovements,
     syncQueue,
     syncCursors,
   ];
@@ -7766,6 +8661,437 @@ typedef $$LocalBookCopiesTableProcessedTableManager =
       LocalBookCopy,
       PrefetchHooks Function()
     >;
+typedef $$LocalStockMovementsTableCreateCompanionBuilder =
+    LocalStockMovementsCompanion Function({
+      required String id,
+      required String libraryId,
+      required String copyId,
+      required String movementType,
+      required int quantity,
+      Value<String?> fromStatus,
+      Value<String?> toStatus,
+      Value<String?> fromLocationId,
+      Value<String?> toLocationId,
+      Value<String?> referenceNumber,
+      Value<String?> remarks,
+      Value<String?> createdBy,
+      required DateTime createdAt,
+      Value<bool> provisional,
+      Value<String?> operationId,
+      Value<int> rowid,
+    });
+typedef $$LocalStockMovementsTableUpdateCompanionBuilder =
+    LocalStockMovementsCompanion Function({
+      Value<String> id,
+      Value<String> libraryId,
+      Value<String> copyId,
+      Value<String> movementType,
+      Value<int> quantity,
+      Value<String?> fromStatus,
+      Value<String?> toStatus,
+      Value<String?> fromLocationId,
+      Value<String?> toLocationId,
+      Value<String?> referenceNumber,
+      Value<String?> remarks,
+      Value<String?> createdBy,
+      Value<DateTime> createdAt,
+      Value<bool> provisional,
+      Value<String?> operationId,
+      Value<int> rowid,
+    });
+
+class $$LocalStockMovementsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalStockMovementsTable> {
+  $$LocalStockMovementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get libraryId => $composableBuilder(
+    column: $table.libraryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get copyId => $composableBuilder(
+    column: $table.copyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get movementType => $composableBuilder(
+    column: $table.movementType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromStatus => $composableBuilder(
+    column: $table.fromStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get toStatus => $composableBuilder(
+    column: $table.toStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromLocationId => $composableBuilder(
+    column: $table.fromLocationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get toLocationId => $composableBuilder(
+    column: $table.toLocationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get referenceNumber => $composableBuilder(
+    column: $table.referenceNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get provisional => $composableBuilder(
+    column: $table.provisional,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalStockMovementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalStockMovementsTable> {
+  $$LocalStockMovementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get libraryId => $composableBuilder(
+    column: $table.libraryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get copyId => $composableBuilder(
+    column: $table.copyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get movementType => $composableBuilder(
+    column: $table.movementType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromStatus => $composableBuilder(
+    column: $table.fromStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get toStatus => $composableBuilder(
+    column: $table.toStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromLocationId => $composableBuilder(
+    column: $table.fromLocationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get toLocationId => $composableBuilder(
+    column: $table.toLocationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get referenceNumber => $composableBuilder(
+    column: $table.referenceNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remarks => $composableBuilder(
+    column: $table.remarks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get provisional => $composableBuilder(
+    column: $table.provisional,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalStockMovementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalStockMovementsTable> {
+  $$LocalStockMovementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get libraryId =>
+      $composableBuilder(column: $table.libraryId, builder: (column) => column);
+
+  GeneratedColumn<String> get copyId =>
+      $composableBuilder(column: $table.copyId, builder: (column) => column);
+
+  GeneratedColumn<String> get movementType => $composableBuilder(
+    column: $table.movementType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get fromStatus => $composableBuilder(
+    column: $table.fromStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get toStatus =>
+      $composableBuilder(column: $table.toStatus, builder: (column) => column);
+
+  GeneratedColumn<String> get fromLocationId => $composableBuilder(
+    column: $table.fromLocationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get toLocationId => $composableBuilder(
+    column: $table.toLocationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get referenceNumber => $composableBuilder(
+    column: $table.referenceNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remarks =>
+      $composableBuilder(column: $table.remarks, builder: (column) => column);
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get provisional => $composableBuilder(
+    column: $table.provisional,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get operationId => $composableBuilder(
+    column: $table.operationId,
+    builder: (column) => column,
+  );
+}
+
+class $$LocalStockMovementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalStockMovementsTable,
+          LocalStockMovement,
+          $$LocalStockMovementsTableFilterComposer,
+          $$LocalStockMovementsTableOrderingComposer,
+          $$LocalStockMovementsTableAnnotationComposer,
+          $$LocalStockMovementsTableCreateCompanionBuilder,
+          $$LocalStockMovementsTableUpdateCompanionBuilder,
+          (
+            LocalStockMovement,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalStockMovementsTable,
+              LocalStockMovement
+            >,
+          ),
+          LocalStockMovement,
+          PrefetchHooks Function()
+        > {
+  $$LocalStockMovementsTableTableManager(
+    _$AppDatabase db,
+    $LocalStockMovementsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalStockMovementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalStockMovementsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalStockMovementsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> libraryId = const Value.absent(),
+                Value<String> copyId = const Value.absent(),
+                Value<String> movementType = const Value.absent(),
+                Value<int> quantity = const Value.absent(),
+                Value<String?> fromStatus = const Value.absent(),
+                Value<String?> toStatus = const Value.absent(),
+                Value<String?> fromLocationId = const Value.absent(),
+                Value<String?> toLocationId = const Value.absent(),
+                Value<String?> referenceNumber = const Value.absent(),
+                Value<String?> remarks = const Value.absent(),
+                Value<String?> createdBy = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> provisional = const Value.absent(),
+                Value<String?> operationId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalStockMovementsCompanion(
+                id: id,
+                libraryId: libraryId,
+                copyId: copyId,
+                movementType: movementType,
+                quantity: quantity,
+                fromStatus: fromStatus,
+                toStatus: toStatus,
+                fromLocationId: fromLocationId,
+                toLocationId: toLocationId,
+                referenceNumber: referenceNumber,
+                remarks: remarks,
+                createdBy: createdBy,
+                createdAt: createdAt,
+                provisional: provisional,
+                operationId: operationId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String libraryId,
+                required String copyId,
+                required String movementType,
+                required int quantity,
+                Value<String?> fromStatus = const Value.absent(),
+                Value<String?> toStatus = const Value.absent(),
+                Value<String?> fromLocationId = const Value.absent(),
+                Value<String?> toLocationId = const Value.absent(),
+                Value<String?> referenceNumber = const Value.absent(),
+                Value<String?> remarks = const Value.absent(),
+                Value<String?> createdBy = const Value.absent(),
+                required DateTime createdAt,
+                Value<bool> provisional = const Value.absent(),
+                Value<String?> operationId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalStockMovementsCompanion.insert(
+                id: id,
+                libraryId: libraryId,
+                copyId: copyId,
+                movementType: movementType,
+                quantity: quantity,
+                fromStatus: fromStatus,
+                toStatus: toStatus,
+                fromLocationId: fromLocationId,
+                toLocationId: toLocationId,
+                referenceNumber: referenceNumber,
+                remarks: remarks,
+                createdBy: createdBy,
+                createdAt: createdAt,
+                provisional: provisional,
+                operationId: operationId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$LocalStockMovementsTable, LocalStockMovement>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $LocalStockMovementsTable,
+                    LocalStockMovement
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalStockMovementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalStockMovementsTable,
+      LocalStockMovement,
+      $$LocalStockMovementsTableFilterComposer,
+      $$LocalStockMovementsTableOrderingComposer,
+      $$LocalStockMovementsTableAnnotationComposer,
+      $$LocalStockMovementsTableCreateCompanionBuilder,
+      $$LocalStockMovementsTableUpdateCompanionBuilder,
+      (
+        LocalStockMovement,
+        BaseReferences<
+          _$AppDatabase,
+          $LocalStockMovementsTable,
+          LocalStockMovement
+        >,
+      ),
+      LocalStockMovement,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncQueueTableCreateCompanionBuilder = SyncQueueCompanion Function({
   required String operationId,
   required String libraryId,
@@ -8406,6 +9732,8 @@ class $AppDatabaseManager {
       $$LocalBooksTableTableManager(_db, _db.localBooks);
   $$LocalBookCopiesTableTableManager get localBookCopies =>
       $$LocalBookCopiesTableTableManager(_db, _db.localBookCopies);
+  $$LocalStockMovementsTableTableManager get localStockMovements =>
+      $$LocalStockMovementsTableTableManager(_db, _db.localStockMovements);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
   $$SyncCursorsTableTableManager get syncCursors =>

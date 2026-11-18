@@ -46,8 +46,17 @@ abstract interface class ProfileRepository {
 }
 
 class ActivityEntry {
-  const ActivityEntry({required this.action, required this.createdAt, this.userId, this.details = const {}});
+  const ActivityEntry({
+    required this.action,
+    required this.createdAt,
+    this.userId,
+    this.details = const {},
+    this.entityType,
+    this.entityId,
+  });
   factory ActivityEntry.fromJson(Map<String, dynamic> j) => ActivityEntry(
+        entityType: j['entity_type'] as String?,
+        entityId: j['entity_id'] as String?,
         action: j['action'] as String,
         createdAt: DateTime.parse(j['created_at'] as String),
         userId: j['user_id'] as String?,
@@ -56,6 +65,8 @@ class ActivityEntry {
   final String action;
   final DateTime createdAt;
   final String? userId;
+  final String? entityType;
+  final String? entityId;
   final Map<String, dynamic> details;
 
   /// Changed field names for an update entry.
@@ -66,6 +77,12 @@ class ActivityEntry {
 /// Server-side change history (activity_logs, RLS-filtered).
 abstract interface class ActivityRepository {
   Future<List<ActivityEntry>> historyFor(String libraryId, String entityId);
+
+  /// Library activity feed, newest first, keyset-paginated by [before].
+  Future<List<ActivityEntry>> libraryFeed(String libraryId, {DateTime? before, String? entityType, int limit = 50});
+
+  /// Display names for user ids (only users visible through RLS).
+  Future<Map<String, String>> userNames(Set<String> userIds);
 }
 
 class SupabaseActivityRepository implements ActivityRepository {
@@ -82,6 +99,31 @@ class SupabaseActivityRepository implements ActivityRepository {
             .order('created_at', ascending: false)
             .limit(50);
         return rows.map(ActivityEntry.fromJson).toList();
+      });
+
+  @override
+  Future<List<ActivityEntry>> libraryFeed(String libraryId, {DateTime? before, String? entityType, int limit = 50}) =>
+      _guard(() async {
+        var q = _db
+            .from('activity_logs')
+            .select('action, created_at, user_id, details, entity_type, entity_id')
+            .eq('library_id', libraryId);
+        if (before != null) q = q.lt('created_at', before.toUtc().toIso8601String());
+        if (entityType != null) q = q.eq('entity_type', entityType);
+        final rows = await q.order('created_at', ascending: false).limit(limit);
+        return rows.map(ActivityEntry.fromJson).toList();
+      });
+
+  @override
+  Future<Map<String, String>> userNames(Set<String> userIds) => _guard(() async {
+        if (userIds.isEmpty) return const {};
+        final rows = await _db.from('user_profiles').select('id, full_name, email').inFilter('id', userIds.toList());
+        return {
+          for (final r in rows)
+            r['id'] as String: ((r['full_name'] as String?)?.trim().isNotEmpty ?? false)
+                ? r['full_name'] as String
+                : (r['email'] as String? ?? (r['id'] as String).substring(0, 8)),
+        };
       });
 }
 

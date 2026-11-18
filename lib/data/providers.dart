@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'local/dao/catalog_dao.dart';
+import 'local/dao/inventory_dao.dart';
 import 'local/dao/local_dao.dart';
 import 'local/database/app_database.dart';
 import 'remote/book_metadata_service.dart';
@@ -19,6 +20,8 @@ final librariesDaoProvider = Provider((ref) => LibrariesDao(ref.watch(appDatabas
 final syncQueueDaoProvider = Provider((ref) => SyncQueueDao(ref.watch(appDatabaseProvider)));
 final localDataDaoProvider = Provider((ref) => LocalDataDao(ref.watch(appDatabaseProvider)));
 final catalogDaoProvider = Provider((ref) => CatalogDao(ref.watch(appDatabaseProvider)));
+final inventoryDaoProvider =
+    Provider((ref) => InventoryDao(ref.watch(appDatabaseProvider), ref.watch(catalogDaoProvider)));
 
 final bookMetadataServiceProvider = Provider((ref) => BookMetadataService());
 

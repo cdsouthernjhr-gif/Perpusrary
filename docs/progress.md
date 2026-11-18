@@ -177,3 +177,56 @@ kontrak `50_catalog_payload_contract.sql` ditambah.
 Inventori (tambah stok, pelarasan, tanda rosak/hilang/tidak aktif, pindah
 lokasi secara pukal, sejarah pergerakan stok, laporan inventori), activity log
 dalam aplikasi, dan ujian concurrency berbilang pengguna tambahan.
+
+## Fasa 5 – Inventori, log aktiviti, concurrency berbilang pengguna ✅
+
+### Dibina
+- **Skrin Inventori**: laporan (judul, naskhah, dalam stok, nilai perolehan,
+  mengikut status / keadaan / lokasi rak / kategori, amaran perubahan belum
+  sync) dan pintasan tindakan.
+- **Tukar status pukal** (rosak / hilang / tidak aktif / tersedia / dalam proses)
+  dan **pindah lokasi pukal** melalui sesi imbasan (kamera atau pengimbas
+  fizikal), dengan no. rujukan & catatan; satu transaksi.
+- **Semakan stok** per rak: dijumpai / belum dijumpai / rak salah; sesi
+  disimpan selepas setiap imbasan; tamatkan dengan tanda Hilang dan/atau
+  pindah ke rak ini.
+- **Sejarah pergerakan stok** (keseluruhan dan per naskhah dari borang naskhah),
+  dengan tanda "belum disahkan" untuk perubahan tempatan.
+- **Log Aktiviti** (pelayan, berhalaman, penapis jenis rekod, nama pengguna);
+  mesej jelas apabila luar talian.
+- "Tambah stok / tambah naskhah" menggunakan aliran Fasa 4 (daftar buku /
+  tambah naskhah); setiap penambahan direkod sebagai pergerakan *acquisition*.
+- Drift skema **v2** (`local_stock_movements`) dengan migrasi dari v1.
+
+### Migration
+`20261118000900_phase5_inventory.sql`
+
+### Pepijat ditemui & dibetulkan oleh ujian
+1. **Pelayan**: semua pergerakan stok/audit dalam satu transaksi (cth. satu
+   batch sync) mendapat `created_at` yang sama → susunan sejarah tidak tentu.
+   Kini `clock_timestamp()`.
+2. Semakan stok tersekat menunggu getaran (haptic) selesai → kini tidak
+   menyekat.
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| DB: migration ×2, 00–60, concurrency C1–C4 | ✅ **200 assertion lulus, 0 gagal** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` | ✅ **97/97** (unit 78, widget 19) |
+
+### Masalah / had yang masih ada
+1. **Enjin sync (Fasa 6) belum dibina**: perubahan inventori, katalog dan
+   pergerakan sementara kekal dalam peranti; log aktiviti hanya menunjukkan
+   perubahan yang sudah sampai ke pelayan.
+2. Laporan inventori dikira daripada data dalam peranti; selepas Fasa 6 ia
+   akan merangkumi data semua peranti. Eksport laporan ialah Fasa 7.
+3. Belum diuji pada peranti Android sebenar.
+
+### Langkah seterusnya – Fasa 6
+Enjin sync: push batch dengan retry + exponential backoff, pull berkursor
+(`sync_pull`), penggantian pergerakan sementara dengan baris pelayan,
+pengendalian konflik (pilihan pengguna berkelayakan), *rebase* operasi yang
+disunting semasa penghantaran, Sync Center, penunjuk "sedang sync", dan ujian
+putus internet ketika sync.

@@ -12,6 +12,7 @@ idempoten – `IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`).
 | `…0500_rls_policies.sql` | GRANT + RLS (SELECT/INSERT/UPDATE/DELETE berasingan) |
 | `…0600_rpc_functions.sql` | `my_libraries`, `accept_invitation`, `sync_push`, `sync_pull`, `library_dashboard`, `find_possible_duplicate_books` |
 | `…0700_storage.sql` | bucket peribadi + polisi `storage.objects` |
+| `…0900_phase5_inventory.sql` | `created_at` default `clock_timestamp()` untuk `stock_movements`/`activity_logs` (dan `deleted_at` tombstone) – susunan tepat dalam satu transaksi; indeks jenis pergerakan |
 | `…0800_phase3_members_libraries.sql` | `user_profiles.email` (cermin `auth.users`, tidak boleh diubah client – grant peringkat lajur), `library_invitations.library_name`, RPC `library_member_list`, `create_library`; pembetulan polisi SELECT `libraries` (Super Admin `INSERT … RETURNING`) dan audit semasa pemadaman seluruh perpustakaan |
 
 ## Jadual

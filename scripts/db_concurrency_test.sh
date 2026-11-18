@@ -9,6 +9,9 @@
 #   C2: the SAME sync operation_id pushed twice at the same time (retry storm)
 #       -> applied exactly once.
 #   C3: 2 users x 25 different copies registered concurrently -> all 50 stored.
+#   C4: 2 users edit the SAME copy from the same base version at the same
+#       time -> exactly one applied, the other reported as a conflict (never a
+#       silent overwrite), exactly one stock movement.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 TEST_DB="${TEST_DB:-slm_test}"
@@ -91,6 +94,36 @@ n="$("${PSQL[@]}" -c "select count(*) from public.book_copies where library_id =
 m="$("${PSQL[@]}" -c "select count(*) from public.stock_movements sm join public.book_copies c on c.id = sm.copy_id where c.barcode like 'BULK-%'")"
 [[ "$m" == "50" ]] || fail "C3 expected 50 stock movements, got $m"
 ok "C3 two users registering 25 copies each concurrently: 50 copies, 50 movements"
+
+# ---------------------------------------------------------------- C4 --------
+COPY_A="$("${PSQL[@]}" -c "select tests.id('copy_a')")"
+LOC_A="$("${PSQL[@]}" -c "select tests.id('loc_a')")"
+mk_op() { # $1 status
+  echo "[{\"operation_id\":\"$(cat /proc/sys/kernel/random/uuid)\",\"entity_type\":\"book_copies\",\"entity_id\":\"$COPY_A\",\"operation_type\":\"update\",\"base_version\":1,\"payload\":{\"book_id\":\"$BOOK_A\",\"barcode\":\"A0001\",\"condition\":\"good\",\"status\":\"$1\",\"location_id\":\"$LOC_A\"}}]"
+}
+OP1="$(mk_op damaged)"
+OP2="$(mk_op lost)"
+( as_user staff_a > "$TMP/c4_a" <<SQL || true
+select public.sync_push('$LIB_A', null, '$OP1'::jsonb) #>> '{results,0,status}';
+select pg_sleep(1.5);
+SQL
+) &
+P1=$!
+sleep 0.4
+( as_user editor_a > "$TMP/c4_b" <<SQL || true
+select public.sync_push('$LIB_A', null, '$OP2'::jsonb) #>> '{results,0,status}';
+SQL
+) &
+P2=$!
+wait $P1 $P2 || true
+r1="$(grep -E '^(applied|conflict|rejected|failed)$' "$TMP/c4_a" || true)"
+r2="$(grep -E '^(applied|conflict|rejected|failed)$' "$TMP/c4_b" || true)"
+[[ "$r1" == "applied" && "$r2" == "conflict" ]] || fail "C4 expected applied/conflict, got '$r1'/'$r2': $(cat "$TMP"/c4_*)"
+st="$("${PSQL[@]}" -c "select status || ':' || version from public.book_copies where id = '$COPY_A'")"
+[[ "$st" == "damaged:2" ]] || fail "C4 expected first writer's value damaged:2, got $st"
+mv="$("${PSQL[@]}" -c "select count(*) from public.stock_movements where copy_id = '$COPY_A' and movement_type = 'status_change'")"
+[[ "$mv" == "1" ]] || fail "C4 expected exactly 1 status_change movement, got $mv"
+ok "C4 concurrent edits of the same copy: one applied, one conflict, one movement"
 
 cleanup
 echo "PASS  concurrency"
