@@ -290,11 +290,7 @@ class SyncEngine {
       for (var page = 0; page < 10000; page++) {
         final p = await _remote.pull(libraryId, entity, since: cursor?.sinceXid, afterXid: afterXid, afterId: afterId);
         firstXmin ??= p.snapshotXmin;
-        await _db.transaction(() async {
-          for (final row in p.rows) {
-            await _applyPulledRow(libraryId, entity, row);
-          }
-        });
+        await _db.transaction(() => _applyPage(libraryId, entity, p.rows));
         report.pulled += p.rows.length;
         if (!p.hasMore) break;
         afterXid = p.lastXid;
@@ -310,32 +306,48 @@ class SyncEngine {
     }
   }
 
-  Future<bool> _hasUnconfirmed(String libraryId, String entityId) async {
-    final row = await (_db.select(_db.syncQueue)
-          ..where((q) => q.libraryId.equals(libraryId) & q.entityId.equals(entityId) & q.state.isIn(_unconfirmed))
-          ..limit(1))
-        .getSingleOrNull();
-    return row != null;
-  }
-
-  Future<void> _applyPulledRow(String libraryId, String entity, Map<String, dynamic> row) async {
-    if ((row['library_id'] as String?) != libraryId) return; // defence in depth
-    if (entity == 'stock_movements') {
-      await _upsert(entity, row);
-      return;
+  /// Applies one pulled page: one query finds which rows have unconfirmed
+  /// local changes (those are skipped), the rest is written as one batch.
+  Future<void> _applyPage(String libraryId, String entity, List<Map<String, dynamic>> rows) async {
+    final own = rows.where((r) => r['library_id'] == libraryId).toList(); // defence in depth
+    if (own.isEmpty) return;
+    final idKey = entity == 'sync_tombstones' ? 'entity_id' : 'id';
+    final ids = own.map((r) => r[idKey] as String).toSet().toList();
+    final busy = <String>{};
+    if (entity != 'stock_movements') {
+      for (var i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, (i + 500).clamp(0, ids.length));
+        final hits = await (_db.selectOnly(_db.syncQueue, distinct: true)
+              ..addColumns([_db.syncQueue.entityId])
+              ..where(_db.syncQueue.libraryId.equals(libraryId) &
+                  _db.syncQueue.entityId.isIn(chunk) &
+                  _db.syncQueue.state.isIn(_unconfirmed)))
+            .get();
+        busy.addAll(hits.map((h) => h.read(_db.syncQueue.entityId)!));
+      }
     }
+    final todo = own.where((r) => !busy.contains(r[idKey])).toList();
     if (entity == 'sync_tombstones') {
-      final target = row['entity_type'] as String;
-      final id = row['entity_id'] as String;
-      if (await _hasUnconfirmed(libraryId, id)) return;
-      await _db.customStatement(
-          'DELETE FROM ${_table(target)} WHERE id = ? AND library_id = ?', [id, libraryId]);
+      for (final r in todo) {
+        await _db.customStatement('DELETE FROM ${_table(r['entity_type'] as String)} WHERE id = ? AND library_id = ?',
+            [r['entity_id'], libraryId]);
+      }
       return;
     }
-    final id = row['id'] as String;
-    // Unconfirmed local change wins locally until its push is decided.
-    if (await _hasUnconfirmed(libraryId, id)) return;
-    await _upsert(entity, row);
+    await _db.batch((b) {
+      switch (entity) {
+        case 'categories':
+          b.insertAllOnConflictUpdate(_db.localCategories, todo.map(ServerRowMapper.category));
+        case 'locations':
+          b.insertAllOnConflictUpdate(_db.localLocations, todo.map(ServerRowMapper.location));
+        case 'books':
+          b.insertAllOnConflictUpdate(_db.localBooks, todo.map(ServerRowMapper.book));
+        case 'book_copies':
+          b.insertAllOnConflictUpdate(_db.localBookCopies, todo.map(ServerRowMapper.copy));
+        case 'stock_movements':
+          b.insertAllOnConflictUpdate(_db.localStockMovements, todo.map(ServerRowMapper.movement));
+      }
+    });
   }
 
   // ======================================================================

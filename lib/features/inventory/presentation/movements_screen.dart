@@ -48,18 +48,10 @@ class MovementsScreen extends ConsumerWidget {
                         if (v.from != v.to) '${v.from ?? '-'} → ${v.to ?? '-'}',
                         if (m.referenceNumber != null) 'Rujukan ${m.referenceNumber}',
                         if (m.remarks != null) m.remarks!,
+                        fmt.format(m.createdAt) + (m.provisional ? '  •  belum disahkan' : ''),
                       ].join('\n'),
                     ),
                     isThreeLine: true,
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(fmt.format(m.createdAt), style: Theme.of(context).textTheme.bodySmall),
-                        if (m.provisional)
-                          Text('belum disahkan', style: TextStyle(fontSize: 11, color: scheme.secondary)),
-                      ],
-                    ),
                   );
                 },
               ),

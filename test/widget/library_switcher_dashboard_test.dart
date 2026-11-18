@@ -39,7 +39,7 @@ void main() {
     expect(find.text('Pilih Perpustakaan'), findsOneWidget);
     expect(find.byKey(const Key('library.LIBA')), findsOneWidget);
     expect(find.byKey(const Key('library.LIBB')), findsOneWidget);
-    expect(find.text('11 judul'), findsOneWidget);
+    expect(find.textContaining('11 judul', findRichText: true), findsOneWidget);
     expect(find.textContaining('Pentadbir Perpustakaan'), findsOneWidget);
     expect(find.byKey(const Key('switcher.add')), findsNothing, reason: 'not a super admin');
     await finish(tester);

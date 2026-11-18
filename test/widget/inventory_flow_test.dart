@@ -135,7 +135,7 @@ void main() {
 
     await go(tester, c, Routes.movements);
     expect(find.textContaining('Perolehan • C1'), findsOneWidget);
-    expect(find.text('belum disahkan'), findsNWidgets(3));
+    expect(find.textContaining('belum disahkan'), findsNWidgets(3));
     await finish(tester);
   });
 

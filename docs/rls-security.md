@@ -63,7 +63,17 @@ Pengawal trigger (kod/status perpustakaan, barcode/padam naskhah) kini
 dikuatkuasakan untuk peranan `authenticated`/`anon` sahaja; pemilik DB
 (SQL Editor, tugas pelayan) tidak lagi tersekat.
 
-## Matriks akses
+## Matriks akses (diuji secara sistematik)
+
+Jadual di bawah diuji oleh `supabase/tests/database/90_rls_matrix.sql`:
+setiap peranan (Super Admin, Library Admin A, Editor A, Staf A, Viewer A,
+ahli dibuang, bukan ahli, Library Admin B) dicuba pada setiap operasi bagi
+setiap jadual milik perpustakaan – 400 probe, setiap satu dalam savepoint yang
+di-rollback. Satu nota: "DELETE" naskhah oleh Library Admin dibenarkan RLS
+tetapi disekat oleh kunci asing lejar stok (naskhah dengan sejarah hanya boleh
+dipadam lembut) – ini disengajakan.
+
+### Ringkasan
 
 | Jadual | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|

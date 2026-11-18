@@ -93,8 +93,9 @@ class SyncCenterScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Expanded(child: Text(lib.name, style: Theme.of(context).textTheme.titleMedium)),
+                  // Wrap (not Row): the chip moves under the name with large fonts.
+                  Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(lib.name, style: Theme.of(context).textTheme.titleMedium),
                     SyncIndicatorChip(libraryId: lib.id),
                   ]),
                   const SizedBox(height: 8),

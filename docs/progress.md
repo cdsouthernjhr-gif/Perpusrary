@@ -344,3 +344,97 @@ UI/UX akhir, prestasi (10k+ judul), ujian keselamatan & integrasi tambahan,
 konfigurasi signing release, dan **APK debug/release** – memerlukan mesin
 Windows anda (Android SDK) kerana persekitaran ini tidak dapat memuat turun
 Android SDK.
+
+## Fasa 8 – UI/UX, prestasi, ujian keselamatan & integrasi, APK ✅ (dengan had di bawah)
+
+### Persekitaran
+Polisi rangkaian asal menyekat `dl.google.com`. Atas kelulusan anda, persekitaran
+awan baharu **"Perpusrary"** dicipta yang membenarkan `dl.google.com` dan GitHub;
+Android SDK (platform 36, build-tools 36.0.0, NDK 28.2) dipasang dalam folder
+sementara sesi (bukan pada mesin anda). Tiada KVM → **emulator tidak boleh
+dijalankan**.
+
+### APK
+| Fail | Saiz | Status |
+|---|---|---|
+| `app-arm64-v8a-release.apk` | 31.4 MB | dibina, audit lulus, tidak debuggable |
+| `app-armeabi-v7a-release.apk` | 28.1 MB | dibina |
+| `app-x86_64-release.apk` | 33.7 MB | dibina |
+| `app-debug.apk` | ~200 MB | dibina, audit lulus |
+
+minSdk 24 (Android 7.0), targetSdk 36. Kebenaran: INTERNET,
+ACCESS_NETWORK_STATE, CAMERA. **APK release ini ditandatangani dengan kunci
+DEBUG** (tiada `key.properties`) dan dibina dengan konfigurasi contoh
+(`env/dev.example.json`) – untuk pengesahan binaan sahaja, **bukan untuk
+diedarkan**. Bina semula dengan `env/prod.json` sebenar dan keystore anda.
+
+### Keselamatan
+- Matriks RLS: **400/400** probe sepadan; ujian mutasi lulus.
+- Audit repo + APK: lulus; ujian mutasi (kunci `sb_secret_` & JWT service_role
+  palsu) dikesan.
+- Positif palsu audit dibetulkan: pemalar `'sb_secret_'` dalam kod (yang
+  digunakan untuk MENOLAK kunci rahsia) bersebelahan rentetan lain dalam
+  `kernel_blob.bin` – pengesanan kini memerlukan bentuk kunci sebenar.
+
+### Prestasi (desktop CPU; telefon dijangka 2–5× lebih perlahan)
+Pelayan, 2 × 12,000 judul / 20,000 naskhah, RLS aktif:
+
+| Operasi | ms |
+|---|---|
+| kira judul | 4 |
+| carian tajuk (trigram) | 4 |
+| cari barcode | 1 |
+| `sync_pull` halaman 500 (buku / naskhah) | 12 / 17 |
+| `sync_pull` tiada perubahan | 1 |
+| `library_dashboard` | 42 |
+| `find_possible_duplicate_books` | 38 |
+| `sync_push` 200 operasi | 391 |
+
+Klien (Drift), 12k judul / 20k naskhah:
+
+| Operasi | Sebelum | Selepas |
+|---|---|---|
+| sync awal (32k rekod) | 4,618 ms | **1,231 ms** |
+| import tulis 5,000 baris | 13,231 ms | **5,741 ms** |
+| senarai katalog / carian / barcode | 20 / 11 / 8 ms | – |
+| semakan pendua semasa simpan | 129 ms | – |
+| laporan inventori | 240 ms | – |
+| eksport Excel 8 worksheet | 1,354 ms | – |
+
+### UI/UX
+27 skrin × 4 konfigurasi (teks 1.5×, teks 2.0×, mod gelap, tablet) tanpa
+limpahan. Ikon pelancar baharu.
+
+### Pepijat ditemui & dibetulkan
+1. **Tiada indeks outbox mengikut rekod** → tulisan O(n²) semasa import/luar talian lama.
+2. **Executor import**: baris yang di-rollback masih dikira, dan ID judulnya
+   digunakan semula oleh baris seterusnya bagi judul sama (rujukan tergantung).
+3. Limpahan dengan font aksesibiliti besar: kad Pilih Perpustakaan, laporan
+   Inventori, sejarah pergerakan, pengepala Sync Center, jubin Dashboard.
+4. Positif palsu audit keselamatan (lihat di atas).
+5. Satu binaan release gagal kerana dijalankan serentak dengan `pub get`; saya
+   mengesannya melalui cap masa (output disembunyikan oleh paip) dan membina
+   semula – APK di atas ialah binaan yang disahkan.
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| DB: migration ×2, 00–90 (termasuk matriks RLS), concurrency C1–C4 | ✅ **228 assertion** |
+| Integrasi PostgreSQL (sync 12 + backup/restore 5) | ✅ **17/17** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` (unit + widget) | ✅ **136 lulus**, 3 dilangkau (perlu fail luaran) |
+| Prestasi pelayan & klien | ✅ dalam bajet |
+| Audit keselamatan repo + APK debug + APK release | ✅ |
+| Ujian peranti (`integration_test`) | ⚠️ **belum dijalankan** |
+
+### Senarai semakan penerimaan yang MASIH perlu dibuat (spesifikasi §22)
+Aplikasi **belum boleh dianggap siap sepenuhnya** sehingga perkara berikut diuji:
+1. Jalankan migration 0100–1100 pada projek Supabase (ujian/branch dahulu),
+   kemudian `scripts/db_test.sh` dengan `SKIP_STUB=1` terhadap stack Supabase.
+2. Bina APK dengan `env/prod.json` sebenar + keystore anda.
+3. Pada telefon Android sebenar: log masuk/daftar/reset kata laluan (e-mel
+   Supabase), imbas ISBN & barcode dengan kamera, pengimbas Bluetooth/USB,
+   cetak label, pilih/simpan fail Excel & backup, mod luar talian → sync,
+   dua telefon serentak pada perpustakaan yang sama.
+4. `flutter test integration_test/device_offline_flow_test.dart` pada telefon.

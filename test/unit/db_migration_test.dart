@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartlibrary_manager/data/local/database/app_database.dart';
 
 void main() {
-  test('v1 database upgrades to v3 keeping existing data', () async {
+  test('v1 database upgrades to v4 keeping existing data', () async {
     final dir = await Directory.systemTemp.createTemp('slm_mig');
     final file = File('${dir.path}/db.sqlite');
     try {
@@ -33,10 +33,10 @@ void main() {
       expect((await db.select(db.localBookCopies).get()).single.barcode, 'OLD-1', reason: 'copies preserved by v3 rebuild');
       expect(await db.select(db.localStockMovements).get(), isEmpty, reason: 'v2 table created');
       final v = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(v.data.values.first, 3);
+      expect(v.data.values.first, 4);
       final idx = await db.customSelect(
-          "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_movements_copy', 'idx_copies_barcode')").get();
-      expect(idx, hasLength(2));
+          "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_movements_copy', 'idx_copies_barcode', 'idx_queue_entity', 'idx_copies_accession')").get();
+      expect(idx, hasLength(4));
       // v3: duplicate barcodes no longer violate a local constraint.
       for (final id in ['c1', 'c2']) {
         await db.into(db.localBookCopies).insert(LocalBookCopiesCompanion.insert(

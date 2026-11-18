@@ -1,0 +1,9 @@
+# Copy to android/key.properties (git-ignored) for a signed release build.
+# Create the keystore once (keep it and the passwords safe — losing them means
+# you can never update the app):
+#   keytool -genkey -v -keystore %USERPROFILE%\smartlibrary-release.jks ^
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias smartlibrary
+storeFile=C:/Users/YOUR_NAME/smartlibrary-release.jks
+storePassword=CHANGE_ME
+keyAlias=smartlibrary
+keyPassword=CHANGE_ME

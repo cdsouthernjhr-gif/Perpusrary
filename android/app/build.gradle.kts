@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Release signing: android/key.properties (NOT committed; see
+// android/key.properties.example and docs/installation.md §4).
+val keyProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hasReleaseKey = keyProperties.getProperty("storeFile") != null
 
 android {
     namespace = "my.smartlibrary.smartlibrary_manager"
@@ -29,11 +39,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(keyProperties.getProperty("storeFile"))
+                storePassword = keyProperties.getProperty("storePassword")
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // With android/key.properties: properly signed release.
+            // Without it: signed with the DEBUG key so the build still works for
+            // testing — such an APK must NOT be distributed (Gradle warns below).
+            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }
@@ -46,4 +68,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+if (!hasReleaseKey) {
+    logger.warn("SmartLibrary: android/key.properties not found – release APK is signed with the DEBUG key (testing only).")
 }

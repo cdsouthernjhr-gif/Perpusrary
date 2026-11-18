@@ -193,6 +193,14 @@ class FakeBackupRemote implements BackupRemote {
   }
 }
 
+class FakeProfileRepository implements ProfileRepository {
+  @override
+  Future<UserProfile> getMine() async =>
+      const UserProfile(id: 'user-1', fullName: 'Pengguna Ujian', phone: '012-3456789', email: 'user-1@test.local');
+  @override
+  Future<void> updateMine({required String fullName, String? phone}) async {}
+}
+
 class FakeDashboardRepository implements DashboardRepository {
   final requested = <String>[];
 
@@ -224,8 +232,13 @@ User fakeUser(String id) => User(
 
 class TestHarness {
   TestHarness(
-      {List<LibrarySummary>? server, String userId = 'user-1', this.online = true, bool superAdmin = false, this.autoSync = false})
-      : db = AppDatabase(NativeDatabase.memory()),
+      {List<LibrarySummary>? server,
+      String userId = 'user-1',
+      this.online = true,
+      bool superAdmin = false,
+      this.autoSync = false,
+      AppDatabase? database})
+      : db = database ?? AppDatabase(NativeDatabase.memory()),
         auth = MockAuth(),
         devices = MockDevices(),
         members = MockMembers(),
@@ -243,6 +256,15 @@ class TestHarness {
         deviceName: any(named: 'deviceName'),
         appVersion: any(named: 'appVersion'))).thenAnswer((_) async {});
     when(() => members.myPendingInvitations()).thenAnswer((_) async => const []);
+    when(() => members.listMembers(any())).thenAnswer((_) async => [
+          const LibraryMember(
+              memberId: 'm1', userId: 'user-1', role: LibraryRole.libraryAdmin, status: 'active', isSelf: true,
+              fullName: 'Pentadbir Perpustakaan Dengan Nama Yang Panjang', email: 'pentadbir.panjang@sekolah.edu.my'),
+        ]);
+    when(() => members.listInvitations(any())).thenAnswer((_) async => [
+          LibraryInvitation(id: 'i1', libraryId: 'lib-a', email: 'jemputan.panjang@sekolah.edu.my',
+              role: LibraryRole.staff, status: 'pending', expiresAt: DateTime(2030)),
+        ]);
   }
 
   final AppDatabase db;
@@ -274,6 +296,7 @@ class TestHarness {
         fileIoProvider.overrideWithValue(files),
         backupRemoteProvider.overrideWithValue(backups),
         importJobRepositoryProvider.overrideWithValue(importJobs),
+        profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
         // Never hit the real internet in tests: metadata lookups "not found".

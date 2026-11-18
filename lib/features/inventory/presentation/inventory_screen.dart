@@ -98,8 +98,16 @@ class _ReportView extends StatelessWidget {
             ]),
           ),
         );
-    ListTile row(String label, String value) =>
-        ListTile(dense: true, title: Text(label, overflow: TextOverflow.ellipsis), trailing: Text(value));
+    // Label/value row that wraps (a ListTile trailing cannot shrink and
+    // breaks layout with large accessibility fonts).
+    Widget row(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 3, child: Text(label)),
+            const SizedBox(width: 12),
+            Expanded(flex: 2, child: Text(value, textAlign: TextAlign.end)),
+          ]),
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

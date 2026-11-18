@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(driftDatabase(name: 'smartlibrary'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// Tables whose rows belong to a single library.
   List<TableInfo<Table, Object?>> get libraryOwnedTables =>
@@ -39,6 +39,7 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('CREATE INDEX IF NOT EXISTS idx_queue_state ON sync_queue (library_id, state, created_at)');
           await _createMovementIndexes();
           await _createBarcodeIndex();
+          await _createLookupIndexes();
         },
         onUpgrade: (m, from, to) async {
           // v1 → v2: local inventory ledger (Phase 5)
@@ -52,11 +53,22 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('CREATE INDEX IF NOT EXISTS idx_copies_book ON local_book_copies (library_id, book_id)');
             await _createBarcodeIndex();
           }
+          // v3 → v4: lookup indexes (outbox by entity, accession numbers) —
+          // without them every local write scanned the whole outbox (O(n²)
+          // during large imports or long offline periods).
+          if (from < 4) await _createLookupIndexes();
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  Future<void> _createLookupIndexes() async {
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_queue_entity ON sync_queue (library_id, entity_id, state)');
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_copies_accession ON local_book_copies (library_id, accession_number)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_movements_operation ON local_stock_movements (operation_id)');
+  }
 
   Future<void> _createBarcodeIndex() =>
       customStatement('CREATE INDEX IF NOT EXISTS idx_copies_barcode ON local_book_copies (library_id, barcode)');

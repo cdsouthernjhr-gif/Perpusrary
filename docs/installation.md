@@ -86,13 +86,43 @@ Services pada penggunaan pertama).
 
 ## 4. Bina APK
 
+Binaan telah disahkan (Linux, Flutter 3.50.0, Android SDK platform 36,
+build-tools 36.0.0, NDK 28.2.13676358, JDK 21): APK debug dan release
+berjaya dibina dan lulus `scripts/security_audit.sh`.
+
+### Keystore release (sekali sahaja)
+
 ```powershell
-flutter build apk --debug   --dart-define-from-file=env/dev.json
-flutter build apk --release --dart-define-from-file=env/prod.json
+keytool -genkey -v -keystore %USERPROFILE%\smartlibrary-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias smartlibrary
+copy android\key.properties.example android\key.properties   # kemudian isi laluan & kata laluan
 ```
 
-Release memerlukan keystore sendiri (`android/key.properties`, tidak
-di-commit). Konfigurasi signing akan ditambah dalam Fasa 8.
+Simpan keystore dan kata laluan dengan selamat – tanpa keystore yang sama,
+aplikasi tidak boleh dikemas kini. `android/key.properties` dan `*.jks`
+diabaikan oleh git. Tanpa `key.properties`, APK release ditandatangani dengan
+kunci DEBUG (amaran dipaparkan) – **untuk ujian sahaja, jangan diedarkan**.
+
+### Bina
+
+```powershell
+flutter build apk --debug --dart-define-from-file=env/dev.json
+flutter build apk --release --split-per-abi --dart-define-from-file=env/prod.json
+```
+
+Output: `build/app/outputs/flutter-apk/`. Kebanyakan telefon moden memerlukan
+`app-arm64-v8a-release.apk` (~31 MB); telefon lama 32-bit:
+`app-armeabi-v7a-release.apk` (~28 MB). APK debug (~200 MB) mengandungi semua
+ABI dan simbol penyahpepijat.
+
+### Semak sebelum mengedar
+
+```bash
+./scripts/security_audit.sh build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+apksigner verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk  # mesti BUKAN "Android Debug"
+```
+
+Rangkaian: release hanya HTTPS dengan CA sistem (`network_security_config`);
+debug membenarkan HTTP ke `10.0.2.2`/`localhost` untuk Supabase tempatan.
 
 ## 5. Pembangunan tempatan dengan Supabase CLI (pilihan)
 

@@ -200,11 +200,12 @@ class _Stat extends StatelessWidget {
   final IconData icon;
   final String text;
 
+  // Text.rich (not Row) so it wraps instead of overflowing with large fonts.
   @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Icon(icon, size: 16), const SizedBox(width: 4), Text(text)],
-      );
+  Widget build(BuildContext context) => Text.rich(TextSpan(children: [
+        WidgetSpan(alignment: PlaceholderAlignment.middle, child: Icon(icon, size: 16)),
+        TextSpan(text: ' $text'),
+      ]));
 }
 
 class _EmptyState extends StatelessWidget {

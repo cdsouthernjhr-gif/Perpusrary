@@ -172,6 +172,21 @@ tempatan (pelayan berkuasa); migrasi v1→v2→v3 diuji pada fail sebenar.
   perpustakaan, pilihan soft delete rekod yang tiada dalam backup. Lejar stok
   tidak ditulis semula.
 
+## Prestasi & pengerasan (Fasa 8)
+
+- Skema Drift **v4**: indeks `sync_queue(library_id, entity_id, state)` dan
+  `local_book_copies(library_id, accession_number)` – tanpanya setiap tulisan
+  mengimbas seluruh outbox (O(n²) semasa import besar / luar talian lama).
+- Pull: satu pertanyaan per halaman untuk mengesan rekod dengan perubahan
+  tempatan + tulisan berkumpulan (`batch`).
+- Import: satu transaksi SQLite per 100 baris, savepoint per baris; keadaan
+  (pembilang, ID judul dalam fail) dikemas kini hanya selepas baris berjaya.
+- Android: `network_security_config` (release HTTPS sahaja, CA sistem),
+  `allowBackup=false`, signing release daripada `key.properties`, ikon
+  adaptif (Material "local_library", Apache 2.0).
+- UI: jubin Dashboard berskala mengikut saiz font; baris laporan dan senarai
+  menggunakan susun atur yang membalut (tiada `trailing` panjang).
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |

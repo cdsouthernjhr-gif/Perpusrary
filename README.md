@@ -4,11 +4,10 @@ Aplikasi Android (Flutter) untuk pendaftaran, katalog dan inventori buku bagi
 **banyak perpustakaan dalam satu sistem**, dengan Supabase (PostgreSQL + RLS)
 sebagai pelayan dan SQLite/Drift sebagai pangkalan data tempatan (offline-first).
 
-> Status: **Fasa 1–7 siap dan diuji** (seni bina, database & RLS, Auth,
-> database tempatan, Library Switcher, pengguna, Dashboard, katalog, ISBN,
-> naskhah & barcode, kategori, lokasi, inventori, log aktiviti, enjin sync &
-> Sync Center, **Import/Eksport Excel, Backup & Restore**). Fasa 8 (UI/UX
-> akhir, prestasi, ujian keselamatan & integrasi pada peranti, APK) belum dibina.
+> Status: **Fasa 1–8 dibina dan diuji dalam persekitaran pembangunan**, termasuk
+> APK debug & release (dibina, diaudit). **Belum diuji pada peranti Android
+> sebenar dan pada projek Supabase sebenar** – lihat [docs/progress.md](docs/progress.md)
+> untuk senarai semakan penerimaan yang masih perlu dibuat.
 > Lihat [docs/progress.md](docs/progress.md).
 
 ## Struktur
@@ -41,6 +40,9 @@ flutter analyze
 flutter test
 PGHOST=... PGPORT=... PGUSER=postgres ./scripts/db_test.sh            # migrations + RLS + concurrency
 PGHOST=... PGPORT=... PGUSER=postgres ./scripts/sync_integration_test.sh  # enjin sync vs PostgreSQL sebenar
+PGHOST=... PGPORT=... PGUSER=postgres ./scripts/perf_test.sh              # prestasi pelayan 2×12k judul
+PERF=1 flutter test test/perf/client_perf_test.dart                      # prestasi klien
+./scripts/security_audit.sh [path/to/app.apk]                            # audit keselamatan repo/APK
 ```
 
 Butiran: [docs/testing.md](docs/testing.md).

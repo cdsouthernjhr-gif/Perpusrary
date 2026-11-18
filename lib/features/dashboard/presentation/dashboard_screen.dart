@@ -164,7 +164,9 @@ class _StatsBody extends StatelessWidget {
               crossAxisCount: cols,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              mainAxisExtent: 124, // fixed height: no overflow on small phones
+              // Height follows the user's font size (accessibility settings),
+              // so tiles never overflow: 124 dp at 1.0×, ~178 dp at 2.0×.
+              mainAxisExtent: 76 + 56 * (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1.0, 3.0),
             ),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -183,10 +185,12 @@ class _StatsBody extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: Text(fmt.format(t.$3), style: Theme.of(context).textTheme.headlineSmall),
                         ),
-                        Text(t.$2,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Flexible(
+                          child: Text(t.$2,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ),
                       ],
                     ),
                   ),
@@ -213,7 +217,7 @@ class _StatsBody extends StatelessWidget {
                 ListTile(
                   dense: true,
                   title: Text(c.name),
-                  trailing: Text('${fmt.format(c.titleCount)} judul • ${fmt.format(c.copyCount)} naskhah'),
+                  subtitle: Text('${fmt.format(c.titleCount)} judul • ${fmt.format(c.copyCount)} naskhah'),
                 ),
             ],
           ),

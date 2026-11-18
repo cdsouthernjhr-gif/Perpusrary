@@ -489,7 +489,17 @@ class ImportExecutor {
 
     for (var start = 0; start < todo.length; start += batchSize) {
       final batch = todo.sublist(start, (start + batchSize).clamp(0, todo.length));
+      // One SQLite transaction (one commit / fsync) per batch; each row runs in
+      // a nested transaction (savepoint) so a failing row is rolled back alone.
+      await _db.transaction(() async {
       for (final row in batch) {
+        // Effects are applied to the shared state only after the row commits
+        // its savepoint: a rolled-back row must leave no trace (no counters,
+        // no cached book id that later rows of the same title would reuse).
+        String? newBook;
+        String? updatedBook;
+        var copyCreated = false;
+        var copyUpdated = false;
         try {
           await _db.transaction(() async {
             var book = row.book!;
@@ -504,15 +514,14 @@ class ImportExecutor {
                   bookId = existing;
                 } else {
                   bookId = await _dao.createBook(libraryId, book);
-                  createdBooks[row.groupKey!] = bookId;
-                  result.booksCreated++;
+                  newBook = bookId;
                 }
               case RowAction.updateBook:
                 bookId = row.existingBookId!;
-                if (updatedBooks.add(bookId)) {
+                if (!updatedBooks.contains(bookId)) {
                   final current = await (_db.select(_db.localBooks)..where((b) => b.id.equals(bookId))).getSingle();
                   await _dao.updateBook(libraryId, bookId, _merge(current, book));
-                  result.booksUpdated++;
+                  updatedBook = bookId;
                 }
               default:
                 bookId = row.existingBookId!;
@@ -538,7 +547,7 @@ class ImportExecutor {
                 ),
                 meta: meta,
               );
-              result.copiesUpdated++;
+              copyUpdated = true;
             } else {
               final barcode = c.barcode.isEmpty
                   ? await _dao.nextGeneratedBarcode(libraryId: libraryId, libraryCode: libraryCode, deviceId: deviceId)
@@ -559,13 +568,21 @@ class ImportExecutor {
                 ),
                 meta: meta,
               );
-              result.copiesCreated++;
+              copyCreated = true;
             }
           });
+          if (newBook != null) {
+            createdBooks[row.groupKey!] = newBook!;
+            result.booksCreated++;
+          }
+          if (updatedBook != null && updatedBooks.add(updatedBook!)) result.booksUpdated++;
+          if (copyCreated) result.copiesCreated++;
+          if (copyUpdated) result.copiesUpdated++;
         } catch (e) {
           result.failures.add((row.rowNumber, AppFailure.from(e).message));
         }
       }
+      });
       onProgress?.call((start + batch.length).clamp(0, todo.length), todo.length);
     }
     return result;

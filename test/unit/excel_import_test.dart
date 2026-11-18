@@ -144,6 +144,42 @@ void main() {
     ])), throwsA(predicate((e) => '$e'.contains('Tajuk'))));
     await expectLater(plan(Uint8ListLike.fromList(utf8.encode('Tajuk,ISBN\nA,1'))), throwsA(anything));
   });
+
+  test('a row failing during import is rolled back alone (savepoint), the batch continues', () async {
+    final p = await plan(xlsx(['Tajuk', 'Barcode'], [
+      ['Satu', 'R-1'],
+      ['Dua', 'R-2'],
+      ['Tiga', 'R-3'],
+    ]));
+    expect(p.errorRows, 0);
+    // Between preview and import another edit takes barcode R-2.
+    final other = await dao.createBook(lib, const BookInput(title: 'Lain'));
+    await dao.addCopy(lib, other, const CopyInput(barcode: 'R-2'));
+
+    final r = await run(p);
+    expect(r.failures.map((f) => f.$1), [3], reason: 'only Excel row 3 (barcode R-2) fails');
+    expect((r.booksCreated, r.copiesCreated), (2, 2), reason: 'the rolled-back row is not counted');
+    final titles = (await db.select(db.localBooks).get()).map((b) => b.title).toSet();
+    expect(titles, {'Lain', 'Satu', 'Tiga'}, reason: 'title "Dua" not left behind without its copy');
+    final ops = await db.select(db.syncQueue).get();
+    final dua = ops.where((o) => o.payload.contains('"Dua"'));
+    expect(dua, isEmpty, reason: 'no outbox op for the rolled-back row');
+  });
+
+  test('after a failed row, the next row of the SAME title creates the title (no dangling id)', () async {
+    final p = await plan(xlsx(['Tajuk', 'ISBN', 'Barcode'], [
+      ['Hikayat', '9789836261234', 'G-1'], // will fail: barcode taken after preview
+      ['Hikayat', '9789836261234', 'G-2'],
+    ]));
+    final other = await dao.createBook(lib, const BookInput(title: 'Lain'));
+    await dao.addCopy(lib, other, const CopyInput(barcode: 'G-1'));
+    final r = await run(p);
+    expect(r.failures.single.$1, 2);
+    expect((r.booksCreated, r.copiesCreated), (1, 1));
+    final hikayat = (await db.select(db.localBooks).get()).where((b) => b.title == 'Hikayat').single;
+    final g2 = (await db.select(db.localBookCopies).get()).firstWhere((c) => c.barcode == 'G-2');
+    expect(g2.bookId, hikayat.id, reason: 'copy points to a title that exists');
+  });
 }
 
 typedef Uint8ListLike = Uint8List;

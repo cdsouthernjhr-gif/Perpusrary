@@ -73,6 +73,20 @@ flutter test
 | `test/unit/excel_import_test.dart` | templat diimport semula, ralat setiap baris (tajuk, ISBN, tahun, barcode, status, kos, tarikh mustahil, rak, pendua dalam fail/perpustakaan), `library_id` diabaikan, mod pendua, cipta/tidak cipta kategori & lokasi, jana barcode |
 | `test/widget/phase7_test.dart` | import hujung-ke-hujung + sync, baris tidak sah dikecualikan, Staf tiada import, eksport 8 worksheet, backup → tolak fail perpustakaan lain → restore dengan pengesahan kod + backup pre-restore, backup admin sahaja, 360dp |
 
+### Fasa 8 – keselamatan, UI, prestasi, peranti
+
+| Ujian | Kandungan | Keputusan |
+|---|---|---|
+| `supabase/tests/database/90_rls_matrix.sql` | **400 probe**: 8 peranan × 50 kes (13 jadual × SELECT/INSERT/UPDATE/DELETE) dibandingkan dengan matriks akses; ujian mutasi mengesahkan ia mengesan perubahan | ✅ |
+| `scripts/security_audit.sh` | rahsia/JWT service_role dalam repo & APK, fail env/keystore ter-commit, manifest (backup, cleartext), DEFINER di luar `private`, APK release tidak *debuggable*; ujian mutasi dengan kunci palsu | ✅ (repo, APK debug & release) |
+| `test/widget/ui_smoke_test.dart` | **27 skrin × 4 konfigurasi**: telefon 360dp teks 1.5× dan 2.0×, mod gelap, tablet landskap 1280×800 – gagal pada sebarang limpahan | ✅ |
+| `scripts/perf_test.sh` | pelayan, 2 × 12,000 judul / 20,000 naskhah, RLS aktif | ✅ (lihat progress.md) |
+| `test/perf/client_perf_test.dart` (`PERF=1`) | klien Drift, 12k judul / 20k naskhah | ✅ (lihat progress.md) |
+| `integration_test/device_offline_flow_test.dart` | pada peranti: daftar luar talian → mulakan semula aplikasi → data kekal → sync | ⚠️ **belum dijalankan** (tiada peranti/KVM) |
+
+Jalankan ujian peranti dengan telefon disambungkan:
+`flutter test integration_test/device_offline_flow_test.dart`
+
 ### Pengesahan fail Excel dengan alat luaran
 
 ```bash
