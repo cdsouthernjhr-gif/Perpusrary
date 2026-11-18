@@ -31,12 +31,13 @@ abstract final class Routes {
   static const stocktake = '/inventory/stocktake';
   static const movements = '/inventory/movements';
   static const activity = '/activity';
+  static const syncCenter = '/sync';
   static String copyMovements(String copyId) => '/inventory/movements?copy=$copyId';
 
   /// Routes reachable without a session.
   static const public = {splash, login, register, forgotPassword};
 
-  static const libraryScoped = {dashboard, libraryEdit, members, books, copies, barcode, categories, locations, inventory, activity};
+  static const libraryScoped = {dashboard, libraryEdit, members, books, copies, barcode, categories, locations, inventory, activity, syncCenter};
 
   /// Exact scoped routes and their sub-paths (e.g. `/books/{id}/edit`).
   static bool isLibraryScoped(String location) =>

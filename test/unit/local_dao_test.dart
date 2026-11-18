@@ -48,7 +48,7 @@ void main() {
     expect(await db.select(db.syncQueue).get(), isEmpty);
   });
 
-  test('local barcode uniqueness is per library', () async {
+  test('local table accepts a server copy sharing a barcode with an unaccepted local copy', () async {
     Future<void> copy(String lib, String id, String barcode) =>
         db.into(db.localBookCopies).insert(LocalBookCopiesCompanion.insert(
               id: id,
@@ -58,9 +58,9 @@ void main() {
               createdAt: DateTime.now(),
               updatedAt: DateTime.now(),
             ));
-    await copy('A', 'c1', 'X1');
-    await copy('B', 'c2', 'X1');
-    expect(() => copy('A', 'c3', 'X1'), throwsA(isA<SqliteException>()));
+    await copy('A', 'c1', 'X1'); // local, not yet accepted
+    await copy('A', 'c2', 'X1'); // pulled from server — must not break the pull
+    expect((await db.select(db.localBookCopies).get()).length, 2);
   });
 
   test('stats ignore soft-deleted rows and other libraries', () async {

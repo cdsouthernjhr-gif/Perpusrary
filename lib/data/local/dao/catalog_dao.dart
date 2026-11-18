@@ -44,7 +44,12 @@ class CatalogDao {
   }) async {
     final now = DateTime.now();
     final pending = await (_db.select(_db.syncQueue)
-          ..where((q) => q.libraryId.equals(libraryId) & q.entityId.equals(entityId) & q.state.equals('pending'))
+          // Parked ops (conflict/rejected) also absorb new edits: a second op
+          // for the same entity could only fail until the first is resolved.
+          ..where((q) =>
+              q.libraryId.equals(libraryId) &
+              q.entityId.equals(entityId) &
+              q.state.isIn(const ['pending', 'conflict', 'rejected']))
           ..orderBy([(q) => OrderingTerm.asc(q.createdAt)]))
         .get();
     SyncQueueEntry? find(String type) {
@@ -78,7 +83,10 @@ class CatalogDao {
     if (op == 'delete') {
       if (pendingInsert != null) {
         await (_db.delete(_db.syncQueue)
-              ..where((q) => q.libraryId.equals(libraryId) & q.entityId.equals(entityId) & q.state.equals('pending')))
+              ..where((q) =>
+                  q.libraryId.equals(libraryId) &
+                  q.entityId.equals(entityId) &
+                  q.state.isIn(const ['pending', 'conflict', 'rejected'])))
             .go();
         // The record never reached the server: its provisional ledger goes too.
         await (_db.delete(_db.localStockMovements)
@@ -144,6 +152,31 @@ class CatalogDao {
             ..orderBy([(q) => OrderingTerm.asc(q.createdAt)]))
           .get();
 
+  /// Only the fields that actually changed. Update operations carry a
+  /// field-level diff, so resolving a conflict with "keep my version" re-applies
+  /// exactly what this user changed and never reverts other users' edits to
+  /// fields this user did not touch.
+  static Map<String, dynamic> _changed(Map<String, dynamic> before, Map<String, dynamic> after) => {
+        for (final e in after.entries)
+          if (before[e.key] != e.value) e.key: e.value,
+      };
+
+  static BookInput _bookInputFrom(LocalBook b) => BookInput(
+        title: b.title,
+        subtitle: b.subtitle,
+        isbn: b.isbn,
+        author: b.author,
+        publisher: b.publisher,
+        publicationYear: b.publicationYear,
+        edition: b.edition,
+        language: b.language,
+        description: b.description,
+        categoryId: b.categoryId,
+        callNumber: b.callNumber,
+        coverImagePath: b.coverImagePath,
+        metadataSource: b.metadataSource ?? 'manual',
+      );
+
   static String? _t(String? v) => (v == null || v.trim().isEmpty) ? null : v.trim();
   static String _date(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -204,7 +237,9 @@ class CatalogDao {
             entityType: 'categories',
             entityId: id,
             op: 'update',
-            payload: _categoryPayload(input),
+            payload: _changed(
+                _categoryPayload(CategoryInput(name: row.name, code: row.code, description: row.description)),
+                _categoryPayload(input)),
             serverVersion: row.serverVersion);
         return id;
       });
@@ -273,7 +308,15 @@ class CatalogDao {
             entityType: 'locations',
             entityId: id,
             op: 'update',
-            payload: _locationPayload(input),
+            payload: _changed(
+                _locationPayload(LocationInput(
+                    building: row.building,
+                    room: row.room,
+                    section: row.section,
+                    rackCode: row.rackCode,
+                    shelfCode: row.shelfCode,
+                    description: row.description)),
+                _locationPayload(input)),
             serverVersion: row.serverVersion);
         return id;
       });
@@ -395,7 +438,7 @@ class CatalogDao {
             entityType: 'books',
             entityId: id,
             op: 'update',
-            payload: _bookPayload(input),
+            payload: _changed(_bookPayload(_bookInputFrom(row)), _bookPayload(input)),
             serverVersion: row.serverVersion);
       });
 
@@ -549,8 +592,12 @@ class CatalogDao {
   /// Barcode lookup (scanner / keyboard-wedge input), including soft-deleted
   /// copies so the user learns the barcode is reserved.
   Future<(LocalBookCopy, LocalBook?)?> findByBarcode(String libraryId, String barcode) async {
+    // Prefer the server-confirmed copy if a not-yet-accepted local copy
+    // temporarily shares the barcode (see LocalBookCopies).
     final copy = await (_db.select(_db.localBookCopies)
-          ..where((c) => c.libraryId.equals(libraryId) & c.barcode.equals(barcode.trim())))
+          ..where((c) => c.libraryId.equals(libraryId) & c.barcode.equals(barcode.trim()))
+          ..orderBy([(c) => OrderingTerm.desc(c.serverVersion.isNotNull())])
+          ..limit(1))
         .getSingleOrNull();
     if (copy == null) return null;
     final book = await (_db.select(_db.localBooks)
@@ -575,9 +622,13 @@ class CatalogDao {
 
   Future<void> _assertBarcodeFree(String libraryId, String barcode, {String? exceptId}) async {
     final hit = await (_db.select(_db.localBookCopies)
-          ..where((c) => c.libraryId.equals(libraryId) & c.barcode.equals(barcode)))
+          ..where((c) =>
+              c.libraryId.equals(libraryId) &
+              c.barcode.equals(barcode) &
+              (exceptId == null ? const Constant(true) : c.id.equals(exceptId).not()))
+          ..limit(1))
         .getSingleOrNull();
-    if (hit != null && hit.id != exceptId) {
+    if (hit != null) {
       throw AppFailure('Barcode "$barcode" sudah digunakan dalam perpustakaan ini.',
           code: 'duplicate_barcode', cause: hit.id);
     }
@@ -586,9 +637,13 @@ class CatalogDao {
   Future<void> _assertAccessionFree(String libraryId, String? accession, {String? exceptId}) async {
     if (accession == null || accession.trim().isEmpty) return;
     final hit = await (_db.select(_db.localBookCopies)
-          ..where((c) => c.libraryId.equals(libraryId) & c.accessionNumber.equals(accession.trim())))
+          ..where((c) =>
+              c.libraryId.equals(libraryId) &
+              c.accessionNumber.equals(accession.trim()) &
+              (exceptId == null ? const Constant(true) : c.id.equals(exceptId).not()))
+          ..limit(1))
         .getSingleOrNull();
-    if (hit != null && hit.id != exceptId) {
+    if (hit != null) {
       throw AppFailure('Nombor perolehan "${accession.trim()}" sudah digunakan.', code: 'duplicate_accession_number');
     }
   }
@@ -665,7 +720,7 @@ class CatalogDao {
             entityType: 'book_copies',
             entityId: id,
             op: 'update',
-            payload: _copyPayload(row.bookId, input),
+            payload: _changed(_copyPayload(row.bookId, _inputFrom(row)), _copyPayload(row.bookId, input)),
             serverVersion: row.serverVersion,
             meta: meta?.toJson());
         await _recordMovement(
@@ -760,7 +815,8 @@ class CatalogDao {
           seq++;
           candidate = CopyBarcode.generate(libraryCode: libraryCode, deviceId: deviceId, sequence: seq);
           final used = await (_db.select(_db.localBookCopies)
-                ..where((c) => c.libraryId.equals(libraryId) & c.barcode.equals(candidate)))
+                ..where((c) => c.libraryId.equals(libraryId) & c.barcode.equals(candidate))
+                ..limit(1))
               .getSingleOrNull();
           if (used == null) break;
         }

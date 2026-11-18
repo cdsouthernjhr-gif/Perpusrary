@@ -29,7 +29,7 @@ final _modules = <_Module>[
   const _Module(Icons.assessment_outlined, 'Laporan', phase: 7),
   const _Module(Icons.upload_file, 'Import Excel', phase: 7),
   const _Module(Icons.download, 'Eksport Excel', phase: 7),
-  const _Module(Icons.sync, 'Sync Center', phase: 6),
+  const _Module(Icons.sync, 'Sync Center', route: Routes.syncCenter),
   const _Module(Icons.backup_outlined, 'Backup', phase: 7),
   const _Module(Icons.settings_outlined, 'Tetapan', route: Routes.settings),
 ];

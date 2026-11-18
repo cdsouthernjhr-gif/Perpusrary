@@ -124,6 +124,31 @@ class SyncQueueDao {
     });
   }
 
+  /// Operations that need attention (conflict / rejected / failed).
+  Stream<List<SyncQueueEntry>> watchProblems(String libraryId) => (_db.select(_db.syncQueue)
+        ..where((q) => q.libraryId.equals(libraryId) & q.state.isIn(const ['conflict', 'rejected', 'failed']))
+        ..orderBy([(q) => OrderingTerm.asc(q.createdAt)]))
+      .watch();
+
+  /// Human-readable label of the record an operation refers to.
+  Future<String> describe(String libraryId, String entityType, String entityId) async {
+    Future<String?> one(String sql) async => (await _db.customSelect(sql,
+            variables: [Variable.withString(entityId), Variable.withString(libraryId)]).getSingleOrNull())
+        ?.data
+        .values
+        .first as String?;
+    final label = switch (entityType) {
+      'books' => await one('SELECT title FROM local_books WHERE id = ? AND library_id = ?'),
+      'book_copies' => await one("SELECT c.barcode || ' — ' || coalesce(b.title, '') FROM local_book_copies c "
+          'LEFT JOIN local_books b ON b.id = c.book_id WHERE c.id = ? AND c.library_id = ?'),
+      'categories' => await one('SELECT name FROM local_categories WHERE id = ? AND library_id = ?'),
+      'locations' => await one("SELECT 'Rak ' || rack_code FROM local_locations WHERE id = ? AND library_id = ?"),
+      _ => null,
+    };
+    const types = {'books': 'Buku', 'book_copies': 'Naskhah', 'categories': 'Kategori', 'locations': 'Lokasi'};
+    return '${types[entityType] ?? entityType}: ${label ?? '(rekod tidak dijumpai)'}';
+  }
+
   /// Operations not yet confirmed by the server (any library).
   Future<int> unsyncedCount() async {
     final count = _db.syncQueue.operationId.count();

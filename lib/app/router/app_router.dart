@@ -22,6 +22,7 @@ import '../../features/inventory/presentation/movements_screen.dart';
 import '../../features/inventory/presentation/stocktake_screen.dart';
 import '../../features/locations/presentation/locations_screen.dart';
 import '../../features/reports/presentation/activity_screen.dart';
+import '../../features/sync/presentation/sync_center_screen.dart';
 import '../../features/libraries/application/library_context.dart';
 import '../../features/libraries/presentation/library_form_screen.dart';
 import '../../features/libraries/presentation/library_switcher_screen.dart';
@@ -98,6 +99,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, s) => MovementsScreen(copyId: s.uri.queryParameters['copy']),
       ),
       GoRoute(path: Routes.activity, builder: (_, _) => const ActivityScreen()),
+      GoRoute(path: Routes.syncCenter, builder: (_, _) => const SyncCenterScreen()),
       GoRoute(
         path: Routes.scanner,
         builder: (_, s) => ScannerScreen(mode: s.extra as ScanMode? ?? ScanMode.copyBarcode),

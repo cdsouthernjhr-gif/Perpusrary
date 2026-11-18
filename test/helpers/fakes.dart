@@ -10,6 +10,8 @@ import 'package:smartlibrary_manager/core/errors/app_failure.dart';
 import 'package:smartlibrary_manager/data/local/database/app_database.dart';
 import 'package:smartlibrary_manager/data/providers.dart';
 import 'package:smartlibrary_manager/data/remote/book_metadata_service.dart';
+import 'package:smartlibrary_manager/data/sync/sync_remote.dart';
+import 'package:smartlibrary_manager/features/sync/application/sync_controller.dart';
 import 'package:smartlibrary_manager/data/remote/supabase/supabase_providers.dart';
 import 'package:smartlibrary_manager/data/repositories/auth_repository.dart';
 import 'package:smartlibrary_manager/data/repositories/library_repositories.dart';
@@ -73,6 +75,46 @@ class FakeActivityRepository implements ActivityRepository {
   Future<Map<String, String>> userNames(Set<String> userIds) async => {for (final id in userIds) id: 'Pengguna $id'};
 }
 
+/// Scriptable in-memory sync server for widget tests. By default every op is
+/// applied and echoed back as a server row (version = base + 1).
+class FakeSyncRemote implements SyncRemote {
+  bool offline = false;
+  PushResult Function(Map<String, dynamic> op)? onPush;
+  final pushed = <Map<String, dynamic>>[];
+
+  static Map<String, dynamic> serverRowFor(String libraryId, Map<String, dynamic> op, {int? version}) => {
+        ...(op['payload'] as Map<String, dynamic>),
+        'id': op['entity_id'],
+        'library_id': libraryId,
+        'version': version ?? ((op['base_version'] as int?) ?? 0) + 1,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+        'deleted_at': op['operation_type'] == 'delete' ? DateTime.now().toUtc().toIso8601String() : null,
+      };
+
+  @override
+  Future<List<PushResult>> push(String libraryId, String? deviceId, List<Map<String, dynamic>> operations) async {
+    if (offline) throw const SyncTransportException('offline');
+    pushed.addAll(operations);
+    return [
+      for (final op in operations)
+        onPush?.call(op) ??
+            PushResult(
+              operationId: op['operation_id'] as String,
+              status: 'applied',
+              serverRow: op['operation_type'] == 'delete' ? null : serverRowFor(libraryId, op),
+            ),
+    ];
+  }
+
+  @override
+  Future<PullPage> pull(String libraryId, String entityType,
+      {String? since, String? afterXid, String? afterId, int limit = 500}) async {
+    if (offline) throw const SyncTransportException('offline');
+    return const PullPage(rows: [], hasMore: false, snapshotXmin: '1');
+  }
+}
+
 class FakeDashboardRepository implements DashboardRepository {
   final requested = <String>[];
 
@@ -103,14 +145,16 @@ User fakeUser(String id) => User(
     );
 
 class TestHarness {
-  TestHarness({List<LibrarySummary>? server, String userId = 'user-1', this.online = true, bool superAdmin = false})
+  TestHarness(
+      {List<LibrarySummary>? server, String userId = 'user-1', this.online = true, bool superAdmin = false, this.autoSync = false})
       : db = AppDatabase(NativeDatabase.memory()),
         auth = MockAuth(),
         devices = MockDevices(),
         members = MockMembers(),
         libraries = FakeLibraryRepository(server ?? [libA(), libB()], superAdmin: superAdmin),
         dashboard = FakeDashboardRepository(),
-        activity = FakeActivityRepository() {
+        activity = FakeActivityRepository(),
+        sync = FakeSyncRemote() {
     setUser(userId);
     when(() => auth.authEvents).thenAnswer((_) => const Stream.empty());
     when(() => devices.register(
@@ -127,7 +171,9 @@ class TestHarness {
   final FakeLibraryRepository libraries;
   final FakeDashboardRepository dashboard;
   final FakeActivityRepository activity;
+  final FakeSyncRemote sync;
   final bool online;
+  final bool autoSync;
 
   void setUser(String? id) => when(() => auth.currentUser).thenReturn(id == null ? null : fakeUser(id));
 
@@ -139,6 +185,8 @@ class TestHarness {
         libraryRepositoryProvider.overrideWithValue(libraries),
         dashboardRepositoryProvider.overrideWithValue(dashboard),
         activityRepositoryProvider.overrideWithValue(activity),
+        syncRemoteProvider.overrideWithValue(sync),
+        autoSyncEnabledProvider.overrideWithValue(autoSync),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
         // Never hit the real internet in tests: metadata lookups "not found".

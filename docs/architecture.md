@@ -140,6 +140,14 @@ belah (`test/unit/catalog_dao_test.dart` dan
 - Pelayan: `created_at` lejar/audit kini `clock_timestamp()` supaya susunan
   sejarah dalam satu batch sync adalah tepat (migration 0900).
 
+## Sync (Fasa 6)
+
+Lihat [sync-design.md](sync-design.md). Komponen: `SyncRemote`
+(`SupabaseSyncRemote`), `SyncEngine` (push/pull/rebase/penyelesaian),
+`SyncController` (pengesahan sesi + keahlian, status UI), `SyncAutoRunner`
+(pencetus automatik), Sync Center. Skema Drift **v3**: tiada UNIQUE barcode
+tempatan (pelayan berkuasa); migrasi v1→v2→v3 diuji pada fail sebenar.
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |

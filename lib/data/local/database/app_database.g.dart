@@ -3736,10 +3736,6 @@ class $LocalBookCopiesTable extends LocalBookCopies
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {libraryId, barcode},
-  ];
-  @override
   LocalBookCopy map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return LocalBookCopy(

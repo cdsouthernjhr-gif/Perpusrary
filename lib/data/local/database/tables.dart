@@ -111,12 +111,11 @@ class LocalBookCopies extends Table with SyncColumns {
   @override
   Set<Column<Object>> get primaryKey => {id};
 
-  // Local guard only — the server UNIQUE constraint is authoritative, since
-  // another offline device may use the same barcode.
-  @override
-  List<Set<Column<Object>>> get uniqueKeys => [
-        {libraryId, barcode},
-      ];
+  // NOT unique locally (schema v3): the server's UNIQUE (library_id, barcode)
+  // is the authority. A pull may legitimately bring a server copy whose
+  // barcode equals a local copy that has not been accepted yet — that local
+  // copy is then rejected by the server and the user picks a new barcode.
+  // CatalogDao still refuses duplicates for local edits.
 }
 
 /// Inventory ledger mirror. Rows come from two places:

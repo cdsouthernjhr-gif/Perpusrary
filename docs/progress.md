@@ -230,3 +230,60 @@ Enjin sync: push batch dengan retry + exponential backoff, pull berkursor
 pengendalian konflik (pilihan pengguna berkelayakan), *rebase* operasi yang
 disunting semasa penghantaran, Sync Center, penunjuk "sedang sync", dan ujian
 putus internet ketika sync.
+
+## Fasa 6 – Offline-first, sync queue, konflik, retry & idempotensi ✅
+
+### Dibina
+- **Enjin sync** (`SyncEngine`): push batch FIFO dengan keadaan `in_flight`,
+  idempotensi melalui operation_id, backoff eksponen + jitter, pull berkursor
+  xid8 berhalaman, tombstone, penggantian pergerakan stok sementara dengan
+  baris pelayan, *rebase* suntingan yang dibuat semasa penghantaran,
+  single-flight per perpustakaan.
+- **Payload diff** untuk update (medan berubah sahaja).
+- **SyncController**: sahkan semula sesi & keahlian sebelum sync; henti dan
+  muat semula konteks jika akses ditarik.
+- **Sync automatik**: pilih perpustakaan, internet kembali, selepas perubahan
+  (3 s), setiap 3 minit, aplikasi kembali ke hadapan.
+- **Sync Center**: status, kiraan, Sync sekarang, senarai masalah dengan
+  tindakan (perbezaan medan, versi pelayan, kekalkan saya, jana barcode
+  baharu, buang, cuba semula). Cip status sync di Dashboard membuka Sync Center.
+- Drift skema **v3** (+ migrasi).
+
+### Migration
+`20261118001000_phase6_sync_results.sql`
+
+### Pepijat ditemui & dibetulkan oleh ujian
+1. **Deadlock** dalam enjin: `whenComplete(() => _running.remove(id))`
+   memulangkan Future itu sendiri lalu menunggu dirinya.
+2. **"Kekalkan versi saya" menimpa medan pengguna lain** (payload penuh) →
+   kini payload diff.
+3. **Pull boleh gagal** apabila peranti lain sudah guna barcode yang sama
+   dengan naskhah tempatan belum diterima → kekangan unik tempatan dibuang
+   (skema v3); pelayan kekal penentu.
+4. **"Buang perubahan saya" tidak memulihkan data** bagi penolakan `forbidden`
+   → pelayan kini memulangkan `server_row`; klien juga ada fallback (muat
+   turun semula entiti).
+5. Operasi gagal kerana tiada rangkaian dipaparkan "Sync gagal" → kini
+   "Luar talian".
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| DB: migration ×2, 00–70, concurrency C1–C4 | ✅ **207 assertion lulus, 0 gagal** |
+| Integrasi sync vs PostgreSQL (2 peranti) | ✅ **12/12** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` (unit + widget) | ✅ **108/108** |
+
+### Masalah / had yang masih ada
+1. Belum diuji terhadap **Supabase sebenar** (PostgREST/JWT sebenar) dan pada
+   **peranti Android sebenar**; integrasi menggunakan PostgreSQL 16 + stub
+   dengan fungsi RPC yang sama.
+2. Sync berjalan semasa aplikasi dibuka sahaja (tiada *background service*
+   Android semasa aplikasi ditutup).
+3. Log aktiviti tempatan bagi perubahan belum sync tidak ditunjukkan di Log
+   Aktiviti (hanya di Sync Center / sejarah rekod).
+
+### Langkah seterusnya – Fasa 7
+Import Excel (template, preview, validasi, batch, rekod import), Eksport Excel
+8 worksheet, Backup & Restore (Supabase Storage).

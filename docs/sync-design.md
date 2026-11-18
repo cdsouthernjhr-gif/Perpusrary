@@ -1,7 +1,8 @@
 # Reka Bentuk Sync (Offline-First)
 
-> Bahagian pelayan **sudah dibina dan diuji** (Fasa 2). Bahagian peranti
-> (Drift, sync queue, worker) dirancang untuk Fasa 3 & 6.
+> **Dibina dan diuji** – pelayan (Fasa 2, 6) dan peranti (Fasa 3–6).
+> Enjin: `lib/data/sync/sync_engine.dart`. Ujian hujung-ke-hujung terhadap
+> PostgreSQL sebenar: `test/integration/sync_engine_pg_test.dart`.
 
 ## Push – `rpc/sync_push(p_library_id, p_device_id, p_operations)`
 
@@ -70,20 +71,66 @@ Jenis entiti: `categories, locations, books, book_copies, stock_movements,
 sync_tombstones`. Padam lembut = baris dengan `deleted_at`; padam keras =
 `sync_tombstones`.
 
-## Peranti (Fasa 3/6 – dirancang)
+## Peranti (Fasa 6 – dibina)
 
-Jadual Drift: cermin entiti + `local_status`, `server_version`;
-`sync_queue(operation_id, library_id, entity_type, entity_id, op, base_version,
-payload, attempts, next_attempt_at, last_error, state)`;
-`sync_cursors(library_id, entity_type, since_xid)`.
+### Outbox (`sync_queue`)
+- Setiap perubahan tempatan = baris rekod + operasi outbox dalam **satu
+  transaksi SQLite**.
+- Payload *update* hanya mengandungi **medan yang berubah** (diff). Oleh itu
+  "Kekalkan perubahan saya" semasa konflik hanya menulis semula medan yang
+  pengguna ini ubah, dan tidak membatalkan perubahan pengguna lain pada medan
+  lain (pepijat ini ditemui oleh ujian integrasi dan dibetulkan).
+- Penggabungan: insert+update → insert; update+update → update; insert+delete →
+  dibuang; update+delete → delete. Operasi yang *parked* (konflik/ditolak) turut
+  menyerap suntingan baharu bagi rekod yang sama.
 
-Aliran apabila internet kembali:
-1. Kumpul operasi `pending` (FIFO per entiti).
-2. Sahkan/refresh sesi; panggil `my_libraries()` untuk sahkan keahlian.
-3. `sync_push` dalam batch ≤ 200.
-4. Kemas kini rekod tempatan daripada `server_row`; tandakan `applied`.
-5. `conflict`/`rejected` → Sync Center; `failed`/rangkaian → backoff.
-6. `sync_pull` setiap entiti hingga `has_more = false`; simpan cursor.
+### Keadaan operasi
+`pending → in_flight → (dibuang apabila applied) | conflict | rejected | failed`
 
-Rekod tempatan tidak dianggap disegerakkan sehingga pelayan mengembalikan
-`applied`.
+| Keadaan | Maksud | Tindakan |
+|---|---|---|
+| `in_flight` | sedang dihantar (atau aplikasi mati semasa hantar) | dihantar semula dengan operation_id yang SAMA |
+| `failed` | rangkaian/ralat sementara | cuba semula selepas *backoff* (5 s × 2ⁿ, maks 15 min, ±20 % jitter) |
+| `conflict` | versi pelayan berbeza | pengguna pilih di Sync Center |
+| `rejected` | pelayan menolak (pendua, kebenaran, data tidak sah) | pengguna pilih di Sync Center |
+
+Operasi diambil FIFO dan berhenti pada operasi pertama yang masih dalam
+*backoff* (operasi kemudian mungkin bergantung padanya, cth. naskhah → buku).
+Operasi bagi rekod yang sedang konflik/ditolak tidak dihantar sehingga
+diselesaikan.
+
+### Aliran satu sync (`SyncController.syncNow`)
+1. Sahkan semula sesi + keahlian (`my_libraries()`); jika akses ditarik → henti.
+2. Push batch ≤ 200 (`sync_push`); hasil diproses dalam satu transaksi.
+   - `applied`: operasi dibuang; pergerakan stok sementara operasi itu dibuang
+     (baris pelayan datang melalui pull); baris pelayan diambil – atau, jika ada
+     suntingan lebih baharu, hanya versinya diambil dan operasi yang menunggu
+     di-*rebase* ke versi itu (tiada konflik palsu).
+   - `SyncTransportException` (termasuk respons hilang selepas pelayan commit):
+     operasi → `failed` + backoff; dihantar semula kemudian dengan id yang
+     sama → pelayan memulangkan keputusan tersimpan (`duplicate`).
+   - `SyncAccessDenied` (42501/sesi tamat): operasi kembali `pending`, tidak
+     hilang; konteks perpustakaan dimuat semula.
+3. Pull setiap entiti (`categories, locations, books, book_copies,
+   stock_movements, sync_tombstones`) dengan kursor `snapshot_xmin` halaman
+   pertama. Baris yang mempunyai perubahan tempatan belum disahkan **tidak
+   ditimpa** (push yang menentukan).
+4. Kekangan barcode unik tempatan dibuang (skema v3) supaya pull tidak gagal
+   apabila peranti lain sudah menggunakan barcode yang sama dengan naskhah
+   tempatan yang belum diterima; pelayan menolak naskhah tempatan itu.
+
+### Penyelesaian (Sync Center)
+| Situasi | Pilihan |
+|---|---|
+| Konflik | Lihat perbezaan • Guna versi pelayan • Kekalkan perubahan saya (Editor+ untuk katalog, Staf+ untuk naskhah) |
+| Ditolak: barcode pendua | Jana barcode baharu (dihantar semula) • Buang perubahan saya |
+| Ditolak: lain-lain | Buang perubahan saya (baris pelayan dipulihkan – migration 1000 memulangkan `server_row` untuk penolakan) |
+| Gagal | Cuba sekarang |
+
+Operasi yang diselesaikan mendapat **operation_id baharu** (id lama sudah
+direkod di pelayan dengan keputusan lama).
+
+### Pencetus automatik (`SyncAutoRunner`)
+Perpustakaan dipilih • sambungan kembali • 3 s selepas perubahan tempatan •
+setiap 3 minit • aplikasi kembali ke hadapan. Satu sync pada satu masa bagi
+setiap perpustakaan (*single-flight*).

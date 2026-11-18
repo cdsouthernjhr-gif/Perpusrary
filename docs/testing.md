@@ -26,6 +26,7 @@ Apa yang dijalankan:
 | Sync | `20_sync.sql` – idempotensi, retry, konflik versi, barcode bertembung, payload berniat jahat, pull berhalaman, tombstone |
 | Jemputan & Storage | `30_invitations_storage.sql` |
 | Kontrak payload katalog (Fasa 4) | `50_catalog_payload_contract.sql` – payload tepat seperti dijana `CatalogDao` diterima `sync_push` (null, perpuluhan, tarikh ISO, FIFO, update penuh oleh staff, padam lembut) |
+| Keputusan sync (Fasa 6) | `70_sync_results.sql` – `server_row` pada penolakan, tiada kebocoran antara perpustakaan, teras push tidak didedahkan |
 | Inventori (Fasa 5) | `60_inventory.sql` – jadual kes pariti dengan aplikasi (jenis & kuantiti pergerakan), rujukan/catatan, jumlah lejar = stok semasa, Viewer/perpustakaan lain |
 | Pengguna & perpustakaan (Fasa 3) | `40_members_libraries.sql` – e-mel profil, senarai ahli ikut peranan, tukar peranan/nyahaktif, `create_library` + jemputan admin |
 | Concurrency sebenar (2–3 sambungan serentak) | `scripts/db_concurrency_test.sh` – barcode sama serentak, operation_id sama serentak, 2×25 naskhah serentak, **C4: dua pengguna menyunting naskhah sama dari versi sama → satu diterima, satu konflik, satu pergerakan** |
@@ -62,6 +63,25 @@ flutter test
 | `test/unit/db_migration_test.dart` | migrasi Drift v1 → v2 pada fail sebenar, data sedia ada kekal |
 | `test/unit/inventory_test.dart` | pariti `copyMovement` dengan trigger pelayan, pergerakan sementara + `operation_id`, pukal semua-atau-tiada, laporan inventori, sejarah, semakan stok (berterusan selepas "restart") |
 | `test/widget/inventory_flow_test.dart` | tukar status pukal melalui pengimbas keyboard-wedge, semakan stok hujung-ke-hujung, Viewer tanpa tindakan, log aktiviti (dalam/luar talian), skrin inventori pada 360dp |
+
+| `test/unit/sync_transport_test.dart` | backoff, klasifikasi ralat (rangkaian vs akses ditolak), pemeta baris pelayan, JSON push/pull |
+| `test/widget/sync_center_test.dart` | Sync sekarang, luar talian, konflik + guna versi pelayan, Staf tidak boleh *override* katalog, barcode pendua → jana baharu, sync automatik apabila perpustakaan dipilih, 360dp |
+
+### Integrasi sync dengan PostgreSQL sebenar
+
+```bash
+PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres ./scripts/sync_integration_test.sh
+```
+
+Dua "peranti" (dua pangkalan data Drift) menyegerak melalui `sync_push` /
+`sync_pull` sebenar sebagai pengguna `authenticated` (RLS penuh), melalui
+`test/integration/helpers/pg_sync_remote.dart`. 12 senario: pull awal &
+pengasingan, daftar luar talian → sync, peranti kedua, **respons hilang
+selepas pelayan commit (tiada pendua)**, **barcode sama pada dua peranti
+luar talian**, **konflik + kedua-dua penyelesaian**, rebase suntingan semasa
+penghantaran, ahli dibuang, perubahan *forbidden* dipulihkan, tombstone,
+pull berkursor, **aplikasi ditutup & dibuka semula sebelum sync**.
+Ujian ini dilangkau oleh `flutter test` biasa jika `SLM_PG_PORT` tiada.
 
 > Widget test yang menggunakan Drift mesti memanggil `finish(tester)` di hujung
 > (nyahlekap pokok widget + tutup DB dalam `runAsync`), jika tidak ujian tergantung.

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/router/routes.dart';
 import '../../core/errors/app_failure.dart';
 import '../../features/sync/application/sync_status.dart';
 
@@ -29,12 +31,14 @@ class SyncIndicatorChip extends ConsumerWidget {
     if (compact) {
       return Tooltip(message: d.label, child: Icon(d.icon, color: color, semanticLabel: d.label));
     }
-    return Chip(
+    return ActionChip(
       key: Key('sync.${status.name}'),
       avatar: Icon(d.icon, size: 18, color: color),
       label: Text(d.label),
       side: BorderSide(color: color),
       visualDensity: VisualDensity.compact,
+      tooltip: 'Buka Sync Center',
+      onPressed: () => GoRouter.of(context).push(Routes.syncCenter),
     );
   }
 }
