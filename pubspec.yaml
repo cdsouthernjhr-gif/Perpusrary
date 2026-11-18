@@ -50,6 +50,10 @@ dependencies:
   http: 1.6.0
   pdf: 3.13.1
   printing: 5.15.1
+  archive: 4.7.1
+  xml: 7.1.0
+  crypto: 3.0.8
+  file_picker: 13.4.0
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:drift/native.dart';
@@ -10,7 +11,12 @@ import 'package:smartlibrary_manager/core/errors/app_failure.dart';
 import 'package:smartlibrary_manager/data/local/database/app_database.dart';
 import 'package:smartlibrary_manager/data/providers.dart';
 import 'package:smartlibrary_manager/data/remote/book_metadata_service.dart';
+import 'package:smartlibrary_manager/core/files/file_io.dart';
 import 'package:smartlibrary_manager/data/sync/sync_remote.dart';
+import 'package:smartlibrary_manager/features/backup/application/backup_providers.dart';
+import 'package:smartlibrary_manager/features/backup/application/backup_service.dart';
+import 'package:smartlibrary_manager/features/excel_import/application/import_jobs.dart';
+import 'package:smartlibrary_manager/features/excel_import/application/import_providers.dart';
 import 'package:smartlibrary_manager/features/sync/application/sync_controller.dart';
 import 'package:smartlibrary_manager/data/remote/supabase/supabase_providers.dart';
 import 'package:smartlibrary_manager/data/repositories/auth_repository.dart';
@@ -115,6 +121,78 @@ class FakeSyncRemote implements SyncRemote {
   }
 }
 
+class FakeFileIo implements FileIo {
+  (String, Uint8List)? nextPick;
+  final saved = <String, Uint8List>{};
+
+  @override
+  Future<(String, Uint8List)?> pick({required List<String> extensions}) async => nextPick;
+
+  @override
+  Future<bool> save(String fileName, Uint8List bytes, {required String extension}) async {
+    saved[fileName] = bytes;
+    return true;
+  }
+}
+
+class FakeImportJobs implements ImportJobRepository {
+  final events = <String>[];
+  @override
+  Future<String?> start(String libraryId, String fileName, String duplicateMode, int totalRows) async {
+    events.add('start:$fileName:$totalRows');
+    return 'job-1';
+  }
+
+  @override
+  Future<void> finish(String id,
+      {required String status, required int ok, required int failed, List<Map<String, Object?>> errors = const []}) async {
+    events.add('finish:$status:$ok:$failed');
+  }
+}
+
+class FakeBackupRemote implements BackupRemote {
+  final records = <BackupRecord>[];
+  final blobs = <String, Uint8List>{};
+  final restores = <(String, bool)>[];
+
+  @override
+  Future<List<BackupRecord>> listRecords(String libraryId) async =>
+      records.where((r) => r.libraryId == libraryId).toList().reversed.toList();
+
+  @override
+  Future<void> insertRecord(String id, String libraryId, String backupType) async => records.add(BackupRecord(
+      id: id, libraryId: libraryId, backupType: backupType, status: 'pending', createdAt: DateTime.now()));
+
+  @override
+  Future<void> finishRecord(String id,
+      {required String status, String? filePath, int? fileSize, String? checksum, Map<String, int>? counts, String? notes}) async {
+    final i = records.indexWhere((r) => r.id == id);
+    final r = records[i];
+    records[i] = BackupRecord(
+        id: id,
+        libraryId: r.libraryId,
+        backupType: r.backupType,
+        status: status,
+        createdAt: r.createdAt,
+        filePath: filePath,
+        fileSize: fileSize,
+        checksum: checksum,
+        recordCounts: counts ?? const {});
+  }
+
+  @override
+  Future<void> upload(String path, Uint8List bytes) async => blobs[path] = bytes;
+
+  @override
+  Future<Uint8List> download(String path) async => blobs[path]!;
+
+  @override
+  Future<Map<String, dynamic>> restore(String libraryId, Map<String, dynamic> backup, {required bool deleteMissing}) async {
+    restores.add((libraryId, deleteMissing));
+    return {'restored': {}};
+  }
+}
+
 class FakeDashboardRepository implements DashboardRepository {
   final requested = <String>[];
 
@@ -154,7 +232,10 @@ class TestHarness {
         libraries = FakeLibraryRepository(server ?? [libA(), libB()], superAdmin: superAdmin),
         dashboard = FakeDashboardRepository(),
         activity = FakeActivityRepository(),
-        sync = FakeSyncRemote() {
+        sync = FakeSyncRemote(),
+        files = FakeFileIo(),
+        backups = FakeBackupRemote(),
+        importJobs = FakeImportJobs() {
     setUser(userId);
     when(() => auth.authEvents).thenAnswer((_) => const Stream.empty());
     when(() => devices.register(
@@ -172,6 +253,9 @@ class TestHarness {
   final FakeDashboardRepository dashboard;
   final FakeActivityRepository activity;
   final FakeSyncRemote sync;
+  final FakeFileIo files;
+  final FakeBackupRemote backups;
+  final FakeImportJobs importJobs;
   final bool online;
   final bool autoSync;
 
@@ -187,6 +271,9 @@ class TestHarness {
         activityRepositoryProvider.overrideWithValue(activity),
         syncRemoteProvider.overrideWithValue(sync),
         autoSyncEnabledProvider.overrideWithValue(autoSync),
+        fileIoProvider.overrideWithValue(files),
+        backupRemoteProvider.overrideWithValue(backups),
+        importJobRepositoryProvider.overrideWithValue(importJobs),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
         // Never hit the real internet in tests: metadata lookups "not found".

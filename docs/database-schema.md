@@ -12,6 +12,7 @@ idempoten – `IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`).
 | `…0500_rls_policies.sql` | GRANT + RLS (SELECT/INSERT/UPDATE/DELETE berasingan) |
 | `…0600_rpc_functions.sql` | `my_libraries`, `accept_invitation`, `sync_push`, `sync_pull`, `library_dashboard`, `find_possible_duplicate_books` |
 | `…0700_storage.sql` | bucket peribadi + polisi `storage.objects` |
+| `…1100_phase7_backup_restore.sql` | RPC `restore_library_backup` (+ `private.restore_rows`, `private.clear_tombstones`); pengawal trigger `libraries`/`book_copies` kini hanya untuk peranan API (`private.is_api_user()`) supaya penyelenggaraan oleh pemilik DB tidak disekat |
 | `…1000_phase6_sync_results.sql` | `sync_push` jadi pembalut: teras dipindah ke `private.sync_push_core` (idempoten); keputusan `rejected/failed` kini menyertakan `server_row` semasa (tertakluk RLS) |
 | `…0900_phase5_inventory.sql` | `created_at` default `clock_timestamp()` untuk `stock_movements`/`activity_logs` (dan `deleted_at` tombstone) – susunan tepat dalam satu transaksi; indeks jenis pergerakan |
 | `…0800_phase3_members_libraries.sql` | `user_profiles.email` (cermin `auth.users`, tidak boleh diubah client – grant peringkat lajur), `library_invitations.library_name`, RPC `library_member_list`, `create_library`; pembetulan polisi SELECT `libraries` (Super Admin `INSERT … RETURNING`) dan audit semasa pemadaman seluruh perpustakaan |

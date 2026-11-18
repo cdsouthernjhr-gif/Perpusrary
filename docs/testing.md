@@ -26,6 +26,7 @@ Apa yang dijalankan:
 | Sync | `20_sync.sql` – idempotensi, retry, konflik versi, barcode bertembung, payload berniat jahat, pull berhalaman, tombstone |
 | Jemputan & Storage | `30_invitations_storage.sql` |
 | Kontrak payload katalog (Fasa 4) | `50_catalog_payload_contract.sql` – payload tepat seperti dijana `CatalogDao` diterima `sync_push` (null, perpuluhan, tarikh ISO, FIFO, update penuh oleh staff, padam lembut) |
+| Backup & restore (Fasa 7) | `80_backup_restore.sql` – editor / admin lain / perpustakaan lain / baris `library_id` asing / format / hubungan / barcode berulang ditolak; pemulihan judul, status, kategori yang dipadam keras (id sama), tombstone dibuang, pergerakan "Restore", idempoten, `delete_missing`, perpustakaan tidak aktif |
 | Keputusan sync (Fasa 6) | `70_sync_results.sql` – `server_row` pada penolakan, tiada kebocoran antara perpustakaan, teras push tidak didedahkan |
 | Inventori (Fasa 5) | `60_inventory.sql` – jadual kes pariti dengan aplikasi (jenis & kuantiti pergerakan), rujukan/catatan, jumlah lejar = stok semasa, Viewer/perpustakaan lain |
 | Pengguna & perpustakaan (Fasa 3) | `40_members_libraries.sql` – e-mel profil, senarai ahli ikut peranan, tukar peranan/nyahaktif, `create_library` + jemputan admin |
@@ -67,6 +68,20 @@ flutter test
 | `test/unit/sync_transport_test.dart` | backoff, klasifikasi ralat (rangkaian vs akses ditolak), pemeta baris pelayan, JSON push/pull |
 | `test/widget/sync_center_test.dart` | Sync sekarang, luar talian, konflik + guna versi pelayan, Staf tidak boleh *override* katalog, barcode pendua → jana baharu, sync automatik apabila perpustakaan dipilih, 360dp |
 
+| `test/unit/xlsx_test.dart` | penulis/pembaca XLSX: jenis data, freeze, autofilter, lebar, preamble, fail gaya Excel (shared strings, tarikh), fail bukan xlsx |
+| `test/unit/excel_export_test.dart` | 8 worksheet, kiraan, ringkasan, tiada data perpustakaan lain, aktiviti luar talian |
+| `test/unit/excel_import_test.dart` | templat diimport semula, ralat setiap baris (tajuk, ISBN, tahun, barcode, status, kos, tarikh mustahil, rak, pendua dalam fail/perpustakaan), `library_id` diabaikan, mod pendua, cipta/tidak cipta kategori & lokasi, jana barcode |
+| `test/widget/phase7_test.dart` | import hujung-ke-hujung + sync, baris tidak sah dikecualikan, Staf tiada import, eksport 8 worksheet, backup → tolak fail perpustakaan lain → restore dengan pengesahan kod + backup pre-restore, backup admin sahaja, 360dp |
+
+### Pengesahan fail Excel dengan alat luaran
+
+```bash
+XLSX_OUT=/tmp/x/sample.xlsx flutter test test/unit/xlsx_export_file_test.dart
+python3 -c "import openpyxl; wb=openpyxl.load_workbook('/tmp/x/sample_export.xlsx'); print(wb.sheetnames)"
+soffice --headless --convert-to 'xlsx:Calc MS Excel 2007 XML' --outdir /tmp/lo /tmp/x/sample_template.xlsx
+XLSX_IN=/tmp/lo/sample_template.xlsx flutter test test/unit/xlsx_export_file_test.dart
+```
+
 ### Integrasi sync dengan PostgreSQL sebenar
 
 ```bash
@@ -81,6 +96,10 @@ selepas pelayan commit (tiada pendua)**, **barcode sama pada dua peranti
 luar talian**, **konflik + kedua-dua penyelesaian**, rebase suntingan semasa
 penghantaran, ahli dibuang, perubahan *forbidden* dipulihkan, tombstone,
 pull berkursor, **aplikasi ditutup & dibuka semula sebelum sync**.
+Ditambah `test/integration/backup_restore_pg_test.dart` (5 senario): backup
+admin (laluan folder, checksum, kiraan), restore + backup pre-restore + peranti
+menerima data dipulihkan, perlindungan antara perpustakaan (klien, Storage RLS,
+pelayan), Staf tidak boleh backup/restore, fail diubah dikesan oleh checksum.
 Ujian ini dilangkau oleh `flutter test` biasa jika `SLM_PG_PORT` tiada.
 
 > Widget test yang menggunakan Drift mesti memanggil `finish(tester)` di hujung

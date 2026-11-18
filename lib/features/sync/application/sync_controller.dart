@@ -7,6 +7,7 @@ import '../../../data/providers.dart';
 import '../../../data/remote/supabase/supabase_providers.dart';
 import '../../../data/sync/sync_engine.dart';
 import '../../../data/sync/sync_remote.dart';
+import '../../backup/application/backup_providers.dart';
 import '../../dashboard/application/dashboard_provider.dart';
 import '../../libraries/application/library_context.dart';
 import 'sync_status.dart';
@@ -62,6 +63,13 @@ class SyncController extends Notifier<SyncUiState> {
                 : report.error,
       );
       if (report.applied > 0 || report.pulled > 0) ref.invalidate(dashboardProvider);
+      if (report.ok) {
+        try {
+          await maybeAutoBackup(ref);
+        } catch (_) {
+          // Automatic backup is best effort; it is retried after the next sync.
+        }
+      }
       return report;
     } catch (e) {
       state = SyncUiState(lastSyncAt: state.lastSyncAt, message: 'Ralat sync: $e');

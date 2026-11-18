@@ -148,6 +148,30 @@ Lihat [sync-design.md](sync-design.md). Komponen: `SyncRemote`
 (pencetus automatik), Sync Center. Skema Drift **v3**: tiada UNIQUE barcode
 tempatan (pelayan berkuasa); migrasi v1→v2→v3 diuji pada fail sebenar.
 
+## Excel & Backup (Fasa 7)
+
+- **XLSX ditulis/dibaca sendiri** (`lib/core/xlsx/`, berasaskan `archive` + `xml`)
+  dan bukan pakej `excel` (kemas kini terakhir 2024; kawalan freeze/autofilter
+  terhad). Fail yang dijana disahkan dengan **openpyxl dan LibreOffice**;
+  pembaca diuji dengan fail yang disimpan semula oleh LibreOffice.
+- **Import**: satu baris = satu naskhah; baris dengan ISBN (atau tajuk+pengarang)
+  sama digabung sebagai satu judul. Kolum `library_id`/`Perpustakaan` sentiasa
+  diabaikan. Pratonton sebelum import (ralat setiap baris), mod pendua
+  (abaikan / kemas kini / rekod baharu), cipta kategori/lokasi yang tiada,
+  jana barcode. Import ditulis melalui `CatalogDao` (outbox) dan disegerakkan
+  seperti suntingan biasa; rekod `import_jobs` disimpan di pelayan (jika dalam
+  talian).
+- **Eksport**: 8 worksheet daripada data peranti (sync dicuba dahulu), log
+  aktiviti dari pelayan; header tebal, freeze, autofilter, lebar kolum, tarikh
+  `dd/mm/yyyy` sebenar.
+- **Backup**: dibina daripada data PELAYAN (`sync_pull`, RLS), JSON gzip +
+  SHA-256, bucket peribadi `library-backups/<library_id>/<tahun>/<id>.json.gz`,
+  rekod `backup_records`. Automatik mingguan (pilihan, Library Admin).
+- **Restore**: validasi di klien dan di pelayan (`restore_library_backup`, satu
+  transaksi), backup `pre_restore` automatik dahulu, sahkan dengan menaip kod
+  perpustakaan, pilihan soft delete rekod yang tiada dalam backup. Lejar stok
+  tidak ditulis semula.
+
 ## Keputusan teknikal & andaian
 
 | Perkara | Keputusan | Sebab |

@@ -22,4 +22,5 @@ for f in "$ROOT"/supabase/migrations/*.sql; do "${PSQL[@]}" -d "$TEST_DB" -f "$f
 cd "$ROOT"
 SLM_PG_HOST="${PGHOST:-127.0.0.1}" SLM_PG_PORT="${PGPORT:-5432}" SLM_PG_DB="$TEST_DB" \
 SLM_PG_USER="${PGUSER:-postgres}" SLM_PG_PASSWORD="${PGPASSWORD:-}" \
-  "$FLUTTER" test test/integration/sync_engine_pg_test.dart --concurrency=1 --timeout 120s
+  "$FLUTTER" test test/integration/sync_engine_pg_test.dart test/integration/backup_restore_pg_test.dart \
+    --concurrency=1 --timeout 120s

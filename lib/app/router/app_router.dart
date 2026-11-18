@@ -7,7 +7,11 @@ import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/password_screens.dart';
 import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
+import '../../features/backup/presentation/backup_screen.dart';
 import '../../features/barcode/presentation/barcode_lookup_screen.dart';
+import '../../features/excel_export/presentation/export_screen.dart';
+import '../../features/excel_import/presentation/import_screen.dart';
+import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/barcode/presentation/scanner_screen.dart';
 import '../../features/book_copies/presentation/copies_screen.dart';
 import '../../features/book_copies/presentation/copy_form_screen.dart';
@@ -100,6 +104,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: Routes.activity, builder: (_, _) => const ActivityScreen()),
       GoRoute(path: Routes.syncCenter, builder: (_, _) => const SyncCenterScreen()),
+      GoRoute(path: Routes.importExcel, builder: (_, _) => const ImportScreen()),
+      GoRoute(path: Routes.exportExcel, builder: (_, _) => const ExportScreen()),
+      GoRoute(path: Routes.backup, builder: (_, _) => const BackupScreen()),
+      GoRoute(path: Routes.reports, builder: (_, _) => const ReportsScreen()),
       GoRoute(
         path: Routes.scanner,
         builder: (_, s) => ScannerScreen(mode: s.extra as ScanMode? ?? ScanMode.copyBarcode),

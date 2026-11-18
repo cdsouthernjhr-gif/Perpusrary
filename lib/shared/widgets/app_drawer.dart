@@ -7,11 +7,10 @@ import '../../features/libraries/application/library_context.dart';
 import 'common_widgets.dart';
 
 class _Module {
-  const _Module(this.icon, this.label, {this.route, this.phase, this.visible});
+  const _Module(this.icon, this.label, {this.route, this.visible});
   final IconData icon;
   final String label;
   final String? route;
-  final int? phase; // not built yet → shown disabled with the planned phase
   final bool Function(WidgetRef ref)? visible;
 }
 
@@ -26,11 +25,13 @@ final _modules = <_Module>[
   _Module(Icons.group_outlined, 'Pengguna',
       route: Routes.members, visible: (ref) => ref.watch(activePermissionsProvider).canManageMembers),
   const _Module(Icons.history, 'Log Aktiviti', route: Routes.activity),
-  const _Module(Icons.assessment_outlined, 'Laporan', phase: 7),
-  const _Module(Icons.upload_file, 'Import Excel', phase: 7),
-  const _Module(Icons.download, 'Eksport Excel', phase: 7),
+  const _Module(Icons.assessment_outlined, 'Laporan', route: Routes.reports),
+  _Module(Icons.upload_file, 'Import Excel',
+      route: Routes.importExcel, visible: (ref) => ref.watch(activePermissionsProvider).canEditCatalog),
+  const _Module(Icons.download, 'Eksport Excel', route: Routes.exportExcel),
   const _Module(Icons.sync, 'Sync Center', route: Routes.syncCenter),
-  const _Module(Icons.backup_outlined, 'Backup', phase: 7),
+  _Module(Icons.backup_outlined, 'Backup & Restore',
+      route: Routes.backup, visible: (ref) => ref.watch(activePermissionsProvider).canManageMembers),
   const _Module(Icons.settings_outlined, 'Tetapan', route: Routes.settings),
 ];
 
@@ -80,7 +81,6 @@ class AppDrawer extends ConsumerWidget {
             ListTile(
               leading: Icon(m.icon),
               title: Text(m.label),
-              subtitle: m.phase != null ? Text('Akan datang (Fasa ${m.phase})') : null,
               enabled: m.route != null,
               selected: m.route == current,
               onTap: m.route == null

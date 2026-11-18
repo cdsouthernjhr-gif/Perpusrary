@@ -237,5 +237,6 @@ Future<void> _showInviteDialog(BuildContext context, WidgetRef ref, String libra
     );
     if (done) ref.invalidate(invitationsProvider);
   }
-  email.dispose();
+  // Not disposed here on purpose: the dialog's exit animation may still be
+  // building the TextField. The controller has no listeners and is GC'd.
 }

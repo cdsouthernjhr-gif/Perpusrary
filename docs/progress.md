@@ -287,3 +287,60 @@ putus internet ketika sync.
 ### Langkah seterusnya – Fasa 7
 Import Excel (template, preview, validasi, batch, rekod import), Eksport Excel
 8 worksheet, Backup & Restore (Supabase Storage).
+
+## Fasa 7 – Import Excel, Eksport Excel, Backup & Restore ✅
+
+### Dibina
+- **XLSX sendiri** (tulis + baca) – disahkan dengan openpyxl & LibreOffice.
+- **Import Excel**: muat turun templat (dengan helaian Panduan), pilih fail,
+  pratonton (ringkasan + ralat/amaran setiap baris), semakan ISBN, barcode,
+  kategori, lokasi, status/keadaan/sumber, tahun, kos, tarikh; pengesanan
+  pendua dalam fail & perpustakaan; mod abaikan / kemas kini / rekod baharu;
+  batal; import berkumpulan (100 baris) dengan kemajuan; rekod `import_jobs`;
+  disegerakkan selepas import. Hanya Editor+.
+- **Eksport Excel**: .xlsx sebenar, 8 worksheet (01_Ringkasan … 08_Aktiviti),
+  tarikh eksport & nama perpustakaan, header kemas, autofilter, freeze, lebar
+  kolum, ringkasan statistik; sync dicuba dahulu.
+- **Backup & Restore** (Library Admin, dalam talian): backup manual, automatik
+  mingguan (pilihan), simpan fail backup, senarai dengan tarikh/status/saiz,
+  restore daripada senarai atau fail – validasi format, perpustakaan, hubungan,
+  checksum; ringkasan; sahkan dengan kod perpustakaan; backup pre-restore.
+- **Hab Laporan** (inventori, pergerakan stok, log aktiviti, eksport).
+- Semua modul dalam menu kini aktif.
+
+### Migration
+`20261118001100_phase7_backup_restore.sql`
+
+### Pepijat ditemui & dibetulkan oleh ujian
+1. Tarikh mustahil (cth. `31/31/2026`) diterima kerana `DateTime` Dart
+   menormalkan secara senyap → kini ditolak.
+2. Restore tidak dapat membuang tombstone (tiada hak DELETE – betul mengikut
+   reka bentuk) → fungsi `private` sempit yang menyemak semula peranan.
+3. **Pengawal trigger menyekat pemilik DB** (SQL Editor) daripada
+   menyahaktifkan perpustakaan / membetulkan naskhah → kini untuk peranan API sahaja.
+4. **`TextEditingController` dibuang semasa dialog masih beranimasi** (dialog
+   restore; corak sama dalam dialog jemputan ahli Fasa 3) → dibetulkan.
+5. Ketepatan masa sel tarikh Excel (09:30 → 09:29:59.97) → tepat ke saat.
+
+### Ujian dijalankan
+
+| Suite | Keputusan |
+|---|---|
+| DB: migration ×2, 00–80, concurrency C1–C4 | ✅ **226 assertion lulus, 0 gagal** |
+| Integrasi PostgreSQL (sync 12 + backup/restore 5) | ✅ **17/17** |
+| `flutter analyze` | ✅ tiada isu |
+| `flutter test` (unit + widget) | ✅ **130 lulus** (3 dilangkau: perlukan `XLSX_OUT`/`XLSX_IN`) |
+| Fail Excel disahkan dengan openpyxl + LibreOffice (eksport, templat, import fail LibreOffice) | ✅ |
+
+### Masalah / had yang masih ada
+1. Belum diuji pada **Supabase sebenar** (Storage HTTP, PostgREST) dan **peranti
+   Android sebenar** (pemilih fail SAF, kamera, cetak). Storage diuji melalui
+   polisi `storage.objects` sebenar dengan kandungan fail dalam memori.
+2. Backup/restore memerlukan internet (data diambil daripada pelayan).
+3. Backup automatik berjalan selepas sync semasa aplikasi dibuka sahaja.
+
+### Langkah seterusnya – Fasa 8
+UI/UX akhir, prestasi (10k+ judul), ujian keselamatan & integrasi tambahan,
+konfigurasi signing release, dan **APK debug/release** – memerlukan mesin
+Windows anda (Android SDK) kerana persekitaran ini tidak dapat memuat turun
+Android SDK.

@@ -4,10 +4,11 @@ Aplikasi Android (Flutter) untuk pendaftaran, katalog dan inventori buku bagi
 **banyak perpustakaan dalam satu sistem**, dengan Supabase (PostgreSQL + RLS)
 sebagai pelayan dan SQLite/Drift sebagai pangkalan data tempatan (offline-first).
 
-> Status: **Fasa 1–6 siap dan diuji** (seni bina, skema database, RLS, Auth,
+> Status: **Fasa 1–7 siap dan diuji** (seni bina, database & RLS, Auth,
 > database tempatan, Library Switcher, pengguna, Dashboard, katalog, ISBN,
-> naskhah & barcode, kategori, lokasi, inventori, log aktiviti, **enjin sync
-> offline-first & Sync Center**). Fasa 7 (Excel, backup) dan Fasa 8 belum dibina.
+> naskhah & barcode, kategori, lokasi, inventori, log aktiviti, enjin sync &
+> Sync Center, **Import/Eksport Excel, Backup & Restore**). Fasa 8 (UI/UX
+> akhir, prestasi, ujian keselamatan & integrasi pada peranti, APK) belum dibina.
 > Lihat [docs/progress.md](docs/progress.md).
 
 ## Struktur

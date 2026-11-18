@@ -49,6 +49,20 @@ Semua RPC awam (`sync_push`, `sync_pull`, `my_libraries`, `library_dashboard`,
 `find_possible_duplicate_books`) ialah **SECURITY INVOKER** – RLS tetap
 berkuat kuasa di dalamnya.
 
+### Restore backup (Fasa 7)
+
+`public.restore_library_backup` ialah SECURITY INVOKER: setiap baris tertakluk
+RLS, dan pemanggil mesti Library Admin perpustakaan **aktif** (atau Super
+Admin). Ia menolak backup perpustakaan lain, baris dengan `library_id` lain,
+hubungan rosak dan barcode berulang – semuanya dalam satu transaksi.
+Satu-satunya laluan istimewa ialah `private.clear_tombstones` (SECURITY DEFINER,
+menyemak semula peranan) kerana klien tidak mempunyai hak DELETE pada
+`sync_tombstones`.
+
+Pengawal trigger (kod/status perpustakaan, barcode/padam naskhah) kini
+dikuatkuasakan untuk peranan `authenticated`/`anon` sahaja; pemilik DB
+(SQL Editor, tugas pelayan) tidak lagi tersekat.
+
 ## Matriks akses
 
 | Jadual | SELECT | INSERT | UPDATE | DELETE |
