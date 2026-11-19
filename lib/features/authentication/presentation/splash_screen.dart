@@ -45,7 +45,8 @@ class ConfigErrorApp extends StatelessWidget {
             const SizedBox(height: 12),
             for (final p in problems) ListTile(leading: const Icon(Icons.error_outline), title: Text(p)),
             const SizedBox(height: 12),
-            const Text('Rujuk docs/installation.md untuk menetapkan --dart-define-from-file.'),
+            const Text('Untuk pentadbir: rujuk docs/release.md (GitHub Release) atau docs/installation.md '
+                '(--dart-define-from-file).'),
           ],
         ),
       ),

@@ -118,5 +118,6 @@ jobs:
       - run: ./scripts/security_audit.sh build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: apk-release-debug-signed
+          # Example config + debug key: the app refuses to start (config error).
+          name: ci-build-check-NOT-FOR-INSTALL
           path: build/app/outputs/flutter-apk/*-release.apk

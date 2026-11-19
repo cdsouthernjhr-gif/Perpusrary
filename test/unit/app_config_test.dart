@@ -41,5 +41,15 @@ void main() {
     test('garbage key is not treated as privileged', () {
       expect(AppConfig.isPrivilegedKey('a.b.c'), isFalse);
     });
+
+    test('example/placeholder config (CI build-check APK) is refused with a clear message', () {
+      const example = AppConfig(
+          supabaseUrl: 'https://YOUR-PROJECT-REF.supabase.co', supabaseAnonKey: 'sb_publishable_REPLACE_ME');
+      expect(example.isPlaceholder, isTrue);
+      expect(example.validate(), [AppConfig.placeholderMessage]);
+      const real = AppConfig(
+          supabaseUrl: 'https://ifzsuoxegomisfxkjcmk.supabase.co', supabaseAnonKey: 'sb_publishable_abc');
+      expect(real.isValid, isTrue);
+    });
   });
 }

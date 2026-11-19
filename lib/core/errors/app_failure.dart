@@ -11,6 +11,10 @@ class AppFailure implements Exception {
   /// Maps low-level errors to messages non-technical library staff understand.
   factory AppFailure.from(Object error) {
     if (error is AppFailure) return error;
+    if (_isNetwork(error)) {
+      return AppFailure('Tidak dapat menghubungi pelayan. Semak sambungan internet dan cuba lagi.',
+          code: 'offline', cause: error);
+    }
     if (error is AuthException) {
       final code = error.code ?? '';
       final msg = switch (code) {
@@ -35,12 +39,17 @@ class AppFailure implements Exception {
       };
       return AppFailure(msg, code: error.code, cause: error);
     }
-    final text = error.toString();
-    if (text.contains('SocketException') || text.contains('ClientException') ||
-        text.contains('Failed host lookup')) {
-      return AppFailure('Tiada sambungan internet.', code: 'offline', cause: error);
-    }
     return AppFailure('Ralat tidak dijangka. Sila cuba lagi.', cause: error);
+  }
+
+  /// Network failures, including those wrapped by supabase as
+  /// AuthRetryableFetchException / ClientException.
+  static bool _isNetwork(Object error) {
+    if (error is AuthRetryableFetchException) return true;
+    final text = error.toString();
+    return text.contains('SocketException') || text.contains('ClientException') ||
+        text.contains('Failed host lookup') || text.contains('Connection refused') ||
+        text.contains('Network is unreachable') || text.contains('TimeoutException');
   }
 
   static String _uniqueMessage(String raw) {

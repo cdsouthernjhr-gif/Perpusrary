@@ -27,6 +27,8 @@ class AppConfig {
       problems.add('SUPABASE_URL tidak sah.');
     } else if (uri.scheme != 'https' && !_isLocalHost(uri.host)) {
       problems.add('SUPABASE_URL mesti menggunakan https.');
+    } else if (isPlaceholder) {
+      problems.add(placeholderMessage);
     }
 
     if (supabaseAnonKey.isEmpty) {
@@ -42,6 +44,16 @@ class AppConfig {
   }
 
   bool get isValid => validate().isEmpty;
+
+  /// Values copied unchanged from env/dev.example.json (e.g. the CI build-check
+  /// APK). Such an APK can never reach a real project.
+  bool get isPlaceholder =>
+      supabaseUrl.toLowerCase().contains('your-project-ref') || supabaseAnonKey.contains('REPLACE_ME');
+
+  static const placeholderMessage =
+      'APK ini dibina dengan tetapan CONTOH (bukan projek Supabase sebenar) — '
+      'contohnya artifak semakan CI dari tab Actions. Ia tidak boleh log masuk. '
+      'Pasang APK dari halaman Releases di GitHub.';
 
   static bool _isLocalHost(String host) =>
       host == 'localhost' || host == '127.0.0.1' || host == '10.0.2.2';

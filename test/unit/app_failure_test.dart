@@ -22,4 +22,17 @@ void main() {
   test('unknown errors get a generic message', () {
     expect(AppFailure.from(StateError('x')).message, contains('tidak dijangka'));
   });
+
+  test('network failures (incl. wrapped by supabase auth) get a plain Malay message', () {
+    for (final e in [
+      AuthRetryableFetchException(
+          message: "ClientException with SocketException: Failed host lookup: 'x.supabase.co'"),
+      Exception("ClientException with SocketException: Failed host lookup: 'x.supabase.co'"),
+    ]) {
+      final f = AppFailure.from(e);
+      expect(f.code, 'offline');
+      expect(f.message, startsWith('Tidak dapat menghubungi pelayan'));
+      expect(f.message, isNot(contains('Exception')));
+    }
+  });
 }
