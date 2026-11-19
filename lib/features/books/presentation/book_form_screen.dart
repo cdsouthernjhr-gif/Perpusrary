@@ -8,6 +8,7 @@ import '../../../core/utils/barcode.dart';
 import '../../../core/utils/isbn.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../data/remote/book_metadata_service.dart';
 import '../../../data/providers.dart';
 import '../../../shared/models/catalog_models.dart';
 import '../../../shared/widgets/common_widgets.dart';
@@ -91,31 +92,41 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
       _lookingUp = true;
       _lookupMessage = null;
     });
-    final m = await ref.read(bookMetadataServiceProvider).lookup(isbn);
+    final result = await ref.read(bookMetadataServiceProvider).search(isbn);
     if (!mounted) return;
+    final m = result.book;
+    String unreachableNote() => result.unreachable.isEmpty
+        ? ''
+        : ' (${result.unreachable.map(BookMetadata.labelOf).join(', ')} tidak dapat dihubungi)';
     setState(() {
       _lookingUp = false;
       _isbn.text = isbn;
       if (m == null) {
-        _lookupMessage = 'Maklumat tidak dijumpai (atau tiada internet). Sila isi secara manual.';
+        _lookupMessage = result.unreachable.length == 3
+            ? 'Tiada sambungan ke pangkalan data buku. Semak internet, atau isi secara manual.'
+            : 'ISBN ini tiada dalam Google Books, Open Library atau Library of Congress'
+                '${unreachableNote()}. Sila isi secara manual.';
         return;
       }
       // Fill only empty fields so typed data is never overwritten.
-      void fill(TextEditingController c, String? v) {
-        if (c.text.trim().isEmpty && v != null) c.text = v;
+      // Values are cut to the database column limits.
+      void fill(TextEditingController c, String? v, int max) {
+        if (c.text.trim().isEmpty && v != null) c.text = v.length > max ? v.substring(0, max).trimRight() : v;
       }
 
-      fill(_title, m.title);
-      fill(_subtitle, m.subtitle);
-      fill(_author, m.author);
-      fill(_publisher, m.publisher);
-      fill(_year, m.publicationYear?.toString());
-      fill(_language, m.language);
-      fill(_description, m.description);
+      fill(_title, m.title, 500);
+      fill(_subtitle, m.subtitle, 500);
+      fill(_author, m.author, 500);
+      fill(_publisher, m.publisher, 300);
+      fill(_year, m.publicationYear?.toString(), 4);
+      fill(_edition, m.edition, 100);
+      fill(_language, m.language, 50);
+      fill(_callNumber, m.callNumber, 60);
+      fill(_description, m.description, 5000);
       _coverUrl ??= m.coverUrl;
       _metadataSource = m.source;
-      _lookupMessage =
-          'Maklumat diisi daripada ${m.source == 'google_books' ? 'Google Books' : 'Open Library'}. Sila semak sebelum simpan.';
+      _lookupMessage = 'Maklumat diisi daripada ${m.sources.map(BookMetadata.labelOf).join(' + ')}'
+          '${unreachableNote()}. Sila semak sebelum simpan.';
     });
   }
 

@@ -118,6 +118,7 @@ class BookDetailScreen extends ConsumerWidget {
               _info('Sumber maklumat', const {
                 'google_books': 'Google Books',
                 'open_library': 'Open Library',
+                'library_of_congress': 'Library of Congress',
                 'import': 'Import Excel',
               }[b.metadataSource] ?? 'Manual'),
               if (b.description != null)

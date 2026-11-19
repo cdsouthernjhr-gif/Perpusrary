@@ -75,6 +75,24 @@ flutter pub get
 flutter run --dart-define-from-file=env/dev.json
 ```
 
+### Carian maklumat buku melalui ISBN
+
+Apabila ISBN diimbas atau ditaip, aplikasi bertanya kepada tiga katalog
+awam secara serentak, dan mencuba kedua-dua bentuk ISBN-13 dan ISBN-10:
+- **Google Books**
+- **Open Library**
+- **Library of Congress**: sumber terbuka paling lengkap untuk terbitan
+  Malaysia/Asia Tenggara, seperti DBP, ITBM dan penerbit universiti.
+
+Hasil daripada ketiga-tiganya digabungkan. Hanya ISBN yang dihantar, tanpa
+data pengguna atau perpustakaan. Tiada katalog yang mempunyai semua buku;
+judul tempatan yang tiada di mana-mana sumber perlu diisi secara manual.
+
+Pilihan: Google Books mengehadkan permintaan tanpa kunci mengikut alamat
+IP. Jika kerap gagal, cipta API key untuk *Books API* di Google Cloud
+Console, hadkan kunci itu kepada aplikasi Android ini, kemudian tambah
+`"GOOGLE_BOOKS_API_KEY": "..."` dalam `env/prod.json`.
+
 ### Kamera & saiz APK
 
 Kebenaran `CAMERA` diminta semasa pengimbas pertama kali dibuka (tidak wajib –

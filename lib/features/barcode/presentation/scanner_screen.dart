@@ -33,6 +33,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ],
   );
   bool _done = false;
+  String? _hint;
 
   @override
   void dispose() {
@@ -45,7 +46,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
     for (final b in capture.barcodes) {
       final v = b.rawValue?.trim();
       if (v == null || v.isEmpty) continue;
-      if (widget.mode == ScanMode.isbn && !Isbn.isValid(v)) continue; // ignore non-ISBN EAN-13
+      if (widget.mode == ScanMode.isbn && !Isbn.isValid(v)) {
+        // A product/periodical EAN-13 (e.g. 977 = ISSN) — tell the user
+        // instead of silently ignoring it.
+        final hint = v.startsWith('977')
+            ? 'Barcode $v ialah ISSN (majalah/jurnal), bukan ISBN. Cari barcode lain atau masukkan ISBN secara manual.'
+            : 'Barcode $v bukan ISBN (ISBN bermula dengan 978 atau 979). Cuba barcode lain pada buku.';
+        if (hint != _hint) setState(() => _hint = hint);
+        continue;
+      }
       _done = true;
       HapticFeedback.mediumImpact();
       context.pop(v);
@@ -91,9 +100,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
               color: Colors.black54,
               padding: const EdgeInsets.all(16),
               child: Text(
-                widget.mode == ScanMode.isbn
-                    ? 'Halakan kamera ke barcode ISBN (EAN-13) di belakang buku.'
-                    : 'Halakan kamera ke label barcode naskhah.',
+                _hint ??
+                    (widget.mode == ScanMode.isbn
+                        ? 'Halakan kamera ke barcode ISBN (EAN-13, bermula 978/979) di belakang buku.'
+                        : 'Halakan kamera ke label barcode naskhah.'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white),
               ),

@@ -462,3 +462,35 @@ Aplikasi **belum boleh dianggap siap sepenuhnya** sehingga perkara berikut diuji
   - `anon` disekat.
 - Belum dibuat: tetapan Auth di dashboard (Redirect URL, Confirm email, SMTP),
   Super Admin pertama, dan ujian aplikasi pada peranti.
+
+## Carian ISBN diperluas (2026-11-19)
+
+Masalah: carian hanya dibuat dalam Google Books kemudian Open Library, dengan
+bentuk ISBN-13 sahaja. Banyak buku Malaysia tidak dijumpai. Ralat had
+permintaan (429) atau tiada rangkaian juga dipaparkan sebagai "tidak dijumpai".
+
+Perubahan:
+- **Library of Congress** ditambah sebagai sumber ketiga. Ketiga-tiga sumber
+  ditanya serentak, dan hasil digabungkan (Google, kemudian Open Library,
+  kemudian LoC mengisi medan yang masih kosong, termasuk edisi dan nombor DDC).
+- Carian mencuba kedua-dua ISBN-13 dan ISBN-10.
+- Sumber yang gagal dihubungi dilaporkan dengan jujur dalam mesej.
+- Nama penerbit yang tersenarai sebagai pengarang dalam Open Library ditapis.
+  Untuk buku suntingan dalam LoC, *statement of responsibility* digunakan
+  sebagai pengarang.
+- Pengimbas memberitahu apabila barcode yang diimbas bukan ISBN
+  (contohnya ISSN 977).
+- Migration `20261119000100_isbn_sources.sql`: nilai `metadata_source`
+  `library_of_congress` dibenarkan. Migration ini sudah dijalankan pada
+  projek Supabase **Library**.
+- Kunci Google Books pilihan: `GOOGLE_BOOKS_API_KEY`.
+
+Ujian:
+- Unit: 11 ujian.
+- SQL: 2 assertion baharu.
+- Ujian sebenar `LIVE=1 flutter test test/live/isbn_live_test.dart`: 19/19
+  ISBN dijumpai (15 Malaysia, 4 antarabangsa). 7 daripadanya hanya ada dalam
+  LoC. Google Books dihadkan (429) dari pelayan ujian, jadi ia tidak dapat
+  diuji secara langsung di sini.
+- Nota: sampel ISBN diambil daripada katalog itu sendiri, jadi 19/19 tidak
+  bermakna semua buku Malaysia akan dijumpai.

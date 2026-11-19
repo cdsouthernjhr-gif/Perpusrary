@@ -73,4 +73,22 @@ insert into r select 'del', public.sync_push(tests.id('lib_a'), null, jsonb_buil
 select tests.is((select j #>> '{results,0,status}' from r where k = 'del'), 'applied', 'app-shaped soft delete applied');
 reset role;
 
+-- metadata_source accepts every source the app can produce (incl. LoC, 1200)
+select tests.become('staff_a'); set local role authenticated;
+insert into r select 'loc', public.sync_push(tests.id('lib_a'), null, jsonb_build_array(
+  jsonb_build_object('operation_id', gen_random_uuid(), 'entity_type', 'books', 'entity_id', gen_random_uuid(),
+    'operation_type', 'insert',
+    'payload', jsonb_build_object('title', 'Sejarah Melaka', 'isbn', '9789834923129',
+      'metadata_source', 'library_of_congress', 'call_number', '959.51'))
+));
+select tests.is((select j #>> '{results,0,status}' from r where k = 'loc'), 'applied',
+  'book with metadata_source library_of_congress is applied');
+insert into r select 'badsrc', public.sync_push(tests.id('lib_a'), null, jsonb_build_array(
+  jsonb_build_object('operation_id', gen_random_uuid(), 'entity_type', 'books', 'entity_id', gen_random_uuid(),
+    'operation_type', 'insert', 'payload', jsonb_build_object('title', 'X', 'metadata_source', 'random_site'))
+));
+select tests.is((select j #>> '{results,0,error_code}' from r where k = 'badsrc'), 'validation_failed',
+  'unknown metadata_source is still rejected');
+reset role;
+
 rollback;

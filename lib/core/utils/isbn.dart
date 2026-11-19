@@ -51,6 +51,20 @@ abstract final class Isbn {
     return '$core${(10 - sum % 10) % 10}';
   }
 
+  /// ISBN-13 (978 prefix only) → ISBN-10. 979 ISBNs have no ISBN-10 form.
+  /// Returns null if [isbn13] is not a valid 978 ISBN-13.
+  static String? to10(String isbn13) {
+    final s = normalize(isbn13);
+    if (s == null || !s.startsWith('978') || !isValid13(s)) return null;
+    final core = s.substring(3, 12);
+    var sum = 0;
+    for (var i = 0; i < 9; i++) {
+      sum += int.parse(core[i]) * (10 - i);
+    }
+    final check = (11 - sum % 11) % 11;
+    return '$core${check == 10 ? 'X' : check}';
+  }
+
   /// Canonical form used for storage and duplicate checks: ISBN-13 when
   /// possible, otherwise the normalized input.
   static String? canonical(String? raw) {
