@@ -438,3 +438,27 @@ Aplikasi **belum boleh dianggap siap sepenuhnya** sehingga perkara berikut diuji
    cetak label, pilih/simpan fail Excel & backup, mod luar talian → sync,
    dua telefon serentak pada perpustakaan yang sama.
 4. `flutter test integration_test/device_offline_flow_test.dart` pada telefon.
+
+## Migration ke Supabase sebenar (2026-11-19)
+
+- Projek: **Library** (rantau ap-northeast-1, PostgreSQL 17). Projek ini kosong
+  sebelum migration dijalankan.
+- Kesemua 11 migration (0100–1100) dijalankan satu demi satu; setiap satu berjaya.
+- Semakan selepas migration:
+  - 16 jadual `public`, semuanya dengan RLS aktif;
+  - 51 polisi RLS dan 8 polisi Storage `slm_*`;
+  - bucket `library-assets` dan `library-backups` kedua-duanya peribadi;
+  - tiada GRANT kepada `anon`, dan tiada SECURITY DEFINER di luar `private`;
+  - trigger `auth.users` (profil dan e-mel) wujud;
+  - advisor keselamatan Supabase: 0 isu. Advisor prestasi hanya memberi nota INFO
+    (indeks belum digunakan kerana pangkalan data kosong, dan FK `created_by` tanpa indeks).
+- Ujian asap pada pangkalan data sebenar, dalam satu transaksi yang
+  di-rollback (tiada data tertinggal):
+  - trigger mencipta profil pengguna baharu;
+  - Super Admin boleh mencipta perpustakaan melalui `create_library`;
+  - `sync_push` buku + naskhah berjaya (`applied`), dan lejar stok ditulis;
+  - pengguna A disekat daripada menulis ke perpustakaan B;
+  - pengguna B tidak nampak buku A, dan `sync_pull` ke A disekat;
+  - `anon` disekat.
+- Belum dibuat: tetapan Auth di dashboard (Redirect URL, Confirm email, SMTP),
+  Super Admin pertama, dan ujian aplikasi pada peranti.
