@@ -92,7 +92,13 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
       # Placeholder config: CI APKs are for build/audit only (no real project).
-      - run: flutter build apk --release --split-per-abi --dart-define-from-file=env/dev.example.json
+      - name: Build APKs (with retries for flaky Maven/Gradle downloads)
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --release --split-per-abi --dart-define-from-file=env/dev.example.json && exit 0
+            echo "::warning::Build failed (attempt $i), retrying in 60s"; sleep 60
+          done
+          exit 1
       - run: ./scripts/security_audit.sh build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
       - uses: actions/upload-artifact@v4
         with:

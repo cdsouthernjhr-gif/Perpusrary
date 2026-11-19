@@ -106,7 +106,14 @@ jobs:
           PY
 
       - name: Build release APKs
-        run: flutter build apk --release --split-per-abi --target-platform android-arm64,android-arm --dart-define-from-file=env/prod.json
+        # Retries: Maven/Gradle downloads occasionally fail (429/timeouts).
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --release --split-per-abi --target-platform android-arm64,android-arm \
+              --dart-define-from-file=env/prod.json && exit 0
+            echo "::warning::Binaan gagal (cubaan $i), cuba semula dalam 60 saat"; sleep 60
+          done
+          exit 1
 
       - name: Remove signing material
         if: always()
