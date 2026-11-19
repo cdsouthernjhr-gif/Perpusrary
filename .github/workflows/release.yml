@@ -1,0 +1,149 @@
+name: Release APK
+
+# Builds signed release APKs and publishes them as a GitHub Release.
+#
+# Trigger: push a tag "v<version>" (e.g. v1.0.0) — from git, or from the
+# GitHub web UI (Releases → Draft a new release → create the tag). The tag
+# must match "version:" in pubspec.yaml (without the +build number).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   the .jks keystore, base64-encoded
+#   ANDROID_KEYSTORE_PASSWORD keystore password
+#   ANDROID_KEY_ALIAS         key alias (e.g. smartlibrary)
+#   ANDROID_KEY_PASSWORD      key password
+#   SUPABASE_URL              https://<ref>.supabase.co
+#   SUPABASE_ANON_KEY         publishable (sb_publishable_…) key — NEVER the secret key
+# Optional:
+#   GOOGLE_BOOKS_API_KEY      Books API key restricted to this Android app
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, verify and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets and version
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          missing=0
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD SUPABASE_URL SUPABASE_ANON_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v belum ditetapkan"; missing=1; fi
+          done
+          [ "$missing" = 0 ] || exit 1
+          case "$SUPABASE_ANON_KEY" in
+            sb_secret_*) echo "::error::SUPABASE_ANON_KEY ialah SECRET key. Guna publishable key."; exit 1;;
+          esac
+          case "$SUPABASE_URL" in
+            https://*) ;;
+            *) echo "::error::SUPABASE_URL mesti bermula dengan https://"; exit 1;;
+          esac
+          tag="${GITHUB_REF_NAME#v}"
+          ver="$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*//; s/\+.*//')"
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::Tag v$tag tidak sepadan dengan version $ver dalam pubspec.yaml"; exit 1
+          fi
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Signing key and app config
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          GOOGLE_BOOKS_API_KEY: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > android/key.properties
+          mkdir -p env
+          python3 - <<'PY'
+          import json, os
+          cfg = {"SUPABASE_URL": os.environ["SUPABASE_URL"].strip(),
+                 "SUPABASE_ANON_KEY": os.environ["SUPABASE_ANON_KEY"].strip()}
+          if os.environ.get("GOOGLE_BOOKS_API_KEY", "").strip():
+              cfg["GOOGLE_BOOKS_API_KEY"] = os.environ["GOOGLE_BOOKS_API_KEY"].strip()
+          json.dump(cfg, open("env/prod.json", "w"))
+          PY
+
+      - name: Build release APKs
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64,android-arm --dart-define-from-file=env/prod.json
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" android/key.properties env/prod.json
+
+      - name: Verify signature (must not be the debug key) and audit
+        run: |
+          out=build/app/outputs/flutter-apk
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          for abi in arm64-v8a armeabi-v7a; do
+            f="$out/app-$abi-release.apk"
+            "$apksigner" verify --print-certs "$f" | tee "$RUNNER_TEMP/cert-$abi.txt"
+            if grep -q "CN=Android Debug" "$RUNNER_TEMP/cert-$abi.txt"; then
+              echo "::error::$f ditandatangani dengan kunci DEBUG"; exit 1
+            fi
+            ./scripts/security_audit.sh "$f"
+          done
+          mkdir -p dist
+          cp "$out/app-arm64-v8a-release.apk"   "dist/SmartLibrary-$VERSION-arm64.apk"
+          cp "$out/app-armeabi-v7a-release.apk" "dist/SmartLibrary-$VERSION-armv7.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          grep -m1 "SHA-256 digest" "$RUNNER_TEMP/cert-arm64-v8a.txt" | sed 's/.*: //' > "$RUNNER_TEMP/certsha"
+          echo "CERT_SHA256=$(cat "$RUNNER_TEMP/certsha")" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SmartLibrary Manager ${{ env.VERSION }}
+          files: |
+            dist/SmartLibrary-${{ env.VERSION }}-arm64.apk
+            dist/SmartLibrary-${{ env.VERSION }}-armv7.apk
+            dist/SHA256SUMS.txt
+          body: |
+            ## Muat turun
+            - **SmartLibrary-${{ env.VERSION }}-arm64.apk** — kebanyakan telefon Android (pilih yang ini).
+            - **SmartLibrary-${{ env.VERSION }}-armv7.apk** — telefon lama 32-bit sahaja.
+
+            Android 7.0 ke atas. Buka fail APK di telefon dan benarkan "Pasang aplikasi tidak diketahui" jika diminta.
+
+            Sijil tandatangan (SHA-256): `${{ env.CERT_SHA256 }}`

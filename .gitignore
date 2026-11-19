@@ -57,3 +57,4 @@ app.*.map.json
 
 # Gradle reports/output under android/ (e.g. android/build/reports)
 /android/build/
+/dist/

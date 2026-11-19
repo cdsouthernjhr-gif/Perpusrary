@@ -55,4 +55,5 @@ Butiran: [docs/testing.md](docs/testing.md).
 - [Reka bentuk sync](docs/sync-design.md)
 - [Pemasangan](docs/installation.md)
 - [Ujian](docs/testing.md)
+- [Release (GitHub Actions)](docs/release.md)
 - [Kemajuan fasa](docs/progress.md)
