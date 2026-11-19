@@ -72,7 +72,15 @@ jobs:
           channel: stable
           flutter-version: 3.50.0
           cache: true
-      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - name: Install system packages (libsqlite3-dev)
+        timeout-minutes: 12
+        run: |
+          for i in 1 2 3; do
+            timeout 180 sudo apt-get update -o Acquire::Retries=3 \
+              && timeout 180 sudo apt-get install -y --no-install-recommends libsqlite3-dev && exit 0
+            echo "::warning::apt gagal/tersangkut (cubaan $i), cuba semula"; sleep 15
+          done
+          exit 1
       - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test
