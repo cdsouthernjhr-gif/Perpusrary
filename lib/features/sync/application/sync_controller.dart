@@ -8,6 +8,7 @@ import '../../../data/remote/supabase/supabase_providers.dart';
 import '../../../data/sync/sync_engine.dart';
 import '../../../data/sync/sync_remote.dart';
 import '../../backup/application/backup_providers.dart';
+import '../../books/application/cover_store.dart';
 import '../../dashboard/application/dashboard_provider.dart';
 import '../../libraries/application/library_context.dart';
 import 'sync_status.dart';
@@ -64,6 +65,12 @@ class SyncController extends Notifier<SyncUiState> {
       );
       if (report.applied > 0 || report.pulled > 0) ref.invalidate(dashboardProvider);
       if (report.ok) {
+        try {
+          // Cover photos taken offline (the book rows are already synced).
+          await ref.read(coverStoreProvider).uploadPending(lib.id);
+        } catch (_) {
+          // Best effort; retried after the next sync.
+        }
         try {
           await maybeAutoBackup(ref);
         } catch (_) {

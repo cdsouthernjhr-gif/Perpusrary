@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import 'package:smartlibrary_manager/core/files/file_io.dart';
 import 'package:smartlibrary_manager/data/sync/sync_remote.dart';
 import 'package:smartlibrary_manager/features/backup/application/backup_providers.dart';
 import 'package:smartlibrary_manager/features/backup/application/backup_service.dart';
+import 'package:smartlibrary_manager/features/books/application/cover_store.dart';
 import 'package:smartlibrary_manager/features/excel_import/application/import_jobs.dart';
 import 'package:smartlibrary_manager/features/excel_import/application/import_providers.dart';
 import 'package:smartlibrary_manager/features/sync/application/sync_controller.dart';
@@ -248,7 +250,9 @@ class TestHarness {
         sync = FakeSyncRemote(),
         files = FakeFileIo(),
         backups = FakeBackupRemote(),
-        importJobs = FakeImportJobs() {
+        importJobs = FakeImportJobs(),
+        covers = MemoryCoverStore(),
+        coverPicker = FakeCoverPicker() {
     setUser(userId);
     when(() => auth.authEvents).thenAnswer((_) => const Stream.empty());
     when(() => devices.register(
@@ -278,6 +282,8 @@ class TestHarness {
   final FakeFileIo files;
   final FakeBackupRemote backups;
   final FakeImportJobs importJobs;
+  final MemoryCoverStore covers;
+  final FakeCoverPicker coverPicker;
   final bool online;
   final bool autoSync;
 
@@ -296,6 +302,8 @@ class TestHarness {
         fileIoProvider.overrideWithValue(files),
         backupRemoteProvider.overrideWithValue(backups),
         importJobRepositoryProvider.overrideWithValue(importJobs),
+        coverStoreProvider.overrideWithValue(covers),
+        coverPickerProvider.overrideWithValue(coverPicker),
         profileRepositoryProvider.overrideWithValue(FakeProfileRepository()),
         connectivityProvider.overrideWith((ref) => Stream.value(online)),
         isOnlineProvider.overrideWithValue(online),
@@ -305,4 +313,59 @@ class TestHarness {
       ];
 
   ProviderContainer container() => ProviderContainer(overrides: overrides);
+}
+
+
+/// In-memory cover store (no file system in widget tests).
+class MemoryCoverStore implements CoverStore {
+  final stored = <String, Uint8List>{};
+  final pending = <String>{};
+  final uploaded = <String>[];
+  bool remoteOnline = true;
+  int _n = 0;
+
+  @override
+  Future<String> add(String libraryId, Uint8List bytes) async {
+    if (CoverImageType.sniff(bytes) == null) throw const CoverException('Format gambar tidak disokong.');
+    _n++;
+    final ref = 'storage:00000000-0000-4000-8000-000000000001/covers/'
+        '00000000-0000-4000-8000-${_n.toString().padLeft(12, '0')}.jpg';
+    stored[ref] = bytes;
+    return ref;
+  }
+
+  @override
+  Future<void> markPending(String ref) async {
+    if (stored.containsKey(ref)) pending.add(ref);
+  }
+
+  @override
+  Future<File?> localFile(String ref) async => null;
+
+  @override
+  Future<File?> resolve(String ref) async => null;
+
+  @override
+  Future<int> uploadPending(String libraryId) async {
+    if (!remoteOnline) return 0;
+    final n = pending.length;
+    uploaded.addAll(pending);
+    pending.clear();
+    return n;
+  }
+
+  @override
+  Future<int> pendingCount(String libraryId) async => pending.length;
+}
+
+class FakeCoverPicker implements CoverPicker {
+  /// Minimal JPEG header bytes (enough for type detection).
+  Uint8List? next = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0, 16, 74, 70, 73, 70, 0, 1]);
+  final calls = <bool>[];
+
+  @override
+  Future<Uint8List?> pick({required bool camera}) async {
+    calls.add(camera);
+    return next;
+  }
 }

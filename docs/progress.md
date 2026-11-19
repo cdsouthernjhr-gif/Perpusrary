@@ -494,3 +494,40 @@ Ujian:
   diuji secara langsung di sini.
 - Nota: sampel ISBN diambil daripada katalog itu sendiri, jadi 19/19 tidak
   bermakna semua buku Malaysia akan dijumpai.
+
+## Gambar kulit buku secara manual (2026-11-19)
+
+Masalah: borang buku tiada cara untuk memasukkan gambar kulit. Gambar hanya
+datang daripada carian ISBN (pautan https).
+
+Perubahan:
+- Borang buku kini ada bahagian **Gambar kulit buku** dengan butang
+  **Kamera**, **Galeri** dan **Buang**.
+  - Gambar dikecilkan (maks 1200×1600, kualiti 80) melalui `image_picker 1.2.4`.
+  - Galeri menggunakan Android Photo Picker, tanpa kebenaran storan.
+  - Data lokasi/EXIF tidak diminta.
+- Format dikenal pasti daripada isi fail (JPG/PNG/WebP sahaja, maks 4 MB).
+- Gambar disimpan dalam bucket peribadi `library-assets` di
+  `<library_id>/covers/<uuid>.<ext>`, dan `cover_image_path` menyimpan
+  `storage:<laluan>`. Polisi Storage sedia ada (0700) terpakai: ahli boleh
+  melihat, staff+ boleh memuat naik, dan hanya ke folder perpustakaan sendiri.
+  Tiada migration baharu diperlukan.
+- Berfungsi luar talian: gambar disimpan dalam fail peribadi aplikasi, ditanda
+  "pending", dan dimuat naik selepas buku disimpan (jika dalam talian) dan
+  selepas setiap sync yang berjaya.
+- Peranti lain memuat turun gambar dengan sesi sendiri dan menyimpan salinan
+  tempatan, jadi gambar tetap dipaparkan semasa luar talian.
+- Keselamatan: laluan `storage:` disemak dengan pola ketat (UUID/covers/UUID.ext)
+  sebelum menyentuh sistem fail, kerana nilainya datang daripada lajur yang
+  boleh ditulis oleh pengguna lain.
+
+Ujian:
+- Unit: `cover_store_test` (5 ujian, termasuk path traversal dan luar talian).
+- Widget: 3 ujian untuk galeri dan muat naik, kamera luar talian, batal dan
+  buang gambar, dan fail tidak disokong.
+- Ujian asap Storage RLS pada Supabase sebenar (dalam transaksi yang di-rollback):
+  - staf boleh muat naik ke perpustakaan sendiri, tetapi disekat ke perpustakaan lain;
+  - viewer boleh melihat gambar tetapi tidak boleh muat naik.
+- Belum diuji: kamera dan galeri sebenar pada peranti.
+- Had: gambar lama yang diganti tidak dipadam dari Storage. Padam memerlukan
+  peranan editor, dan objek yatim ini tidak menjejaskan aplikasi.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -14,7 +16,9 @@ import '../../../shared/models/catalog_models.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../../barcode/presentation/scan_field.dart';
 import '../../barcode/presentation/scanner_screen.dart';
+import '../../libraries/application/library_context.dart';
 import '../application/catalog_providers.dart';
+import '../application/cover_store.dart';
 import 'catalog_widgets.dart';
 
 /// Register a new title (+ first copies) or edit an existing one.
@@ -42,6 +46,7 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
   final _reference = TextEditingController();
   String? _categoryId;
   String? _coverUrl;
+  bool _pickingCover = false;
   String _metadataSource = 'manual';
   String? _lookupMessage;
   bool _lookingUp = false;
@@ -207,6 +212,91 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
     return choice == 'save';
   }
 
+  Future<void> _pickCover({required bool camera}) async {
+    final lib = ref.read(activeLibraryProvider);
+    if (lib == null) return;
+    setState(() => _pickingCover = true);
+    try {
+      final bytes = await ref.read(coverPickerProvider).pick(camera: camera);
+      if (bytes == null) return; // cancelled
+      final coverRef = await ref.read(coverStoreProvider).add(lib.id, bytes);
+      if (mounted) setState(() => _coverUrl = coverRef);
+    } on CoverException catch (e) {
+      if (mounted) showSnack(context, e.message, error: true);
+    } catch (e) {
+      if (mounted) {
+        showSnack(
+            context,
+            camera
+                ? 'Kamera tidak dapat dibuka. Benarkan akses kamera dalam Tetapan Android, atau pilih dari galeri.'
+                : 'Gambar tidak dapat dibuka: $e',
+            error: true);
+      }
+    } finally {
+      if (mounted) setState(() => _pickingCover = false);
+    }
+  }
+
+  /// After the book is saved locally: queue the photo for upload and try now.
+  Future<void> _commitCover() async {
+    final c = _coverUrl;
+    final lib = ref.read(activeLibraryProvider);
+    if (c == null || lib == null || !CoverRef.isStorage(c)) return;
+    final store = ref.read(coverStoreProvider);
+    await store.markPending(c);
+    if (ref.read(isOnlineProvider)) {
+      unawaited(store.uploadPending(lib.id).catchError((Object _) => 0));
+    }
+  }
+
+  Widget _coverSection() {
+    final hasCover = _coverUrl != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BookCover(key: const Key('book.cover'), url: _coverUrl, size: 64),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Gambar kulit buku', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const Key('book.cover.camera'),
+                      onPressed: _pickingCover ? null : () => _pickCover(camera: true),
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: const Text('Kamera'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('book.cover.gallery'),
+                      onPressed: _pickingCover ? null : () => _pickCover(camera: false),
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Galeri'),
+                    ),
+                    if (hasCover)
+                      TextButton.icon(
+                        key: const Key('book.cover.remove'),
+                        onPressed: _pickingCover ? null : () => setState(() => _coverUrl = null),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Buang'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final actions = ref.read(catalogActionsProvider);
@@ -215,6 +305,7 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
     try {
       if (_isEdit) {
         await actions.updateBook(widget.bookId!, _input);
+        await _commitCover();
         if (mounted) {
           showSnack(context, 'Buku dikemas kini.');
           context.pop();
@@ -233,6 +324,7 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
       }
       final id = await actions.createBook(_input,
           copies: copies, meta: MovementMeta(referenceNumber: _reference.text, remarks: 'Pendaftaran buku'));
+      await _commitCover();
       if (mounted) {
         showSnack(context, 'Buku didaftarkan dengan ${copies.length} naskhah. Akan disegerakkan apabila dalam talian.');
         context.pushReplacement(Routes.book(id));
@@ -297,15 +389,10 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
             if (_lookupMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    BookCover(url: _coverUrl, size: 40),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(_lookupMessage!)),
-                  ],
-                ),
+                child: Text(_lookupMessage!),
               ),
             const SizedBox(height: 12),
+            _coverSection(),
             _f(_title, 'Tajuk *', key: 'book.title', validator: (v) => Validators.required(v, field: 'Tajuk')),
             _f(_subtitle, 'Subjudul'),
             _f(_author, 'Pengarang'),

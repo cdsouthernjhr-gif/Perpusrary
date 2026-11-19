@@ -7,16 +7,18 @@ import '../../../core/errors/app_failure.dart';
 import '../../../shared/models/catalog_models.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../application/catalog_providers.dart';
+import '../application/cover_store.dart';
 
-/// Cover thumbnail. Only https URLs are loaded (e.g. from Google Books /
-/// Open Library); otherwise — or offline — a placeholder is shown.
-class BookCover extends StatelessWidget {
+/// Cover thumbnail: an https URL from an ISBN catalogue, or a photo taken
+/// on a device (`storage:` ref — shown from the local copy, downloaded from
+/// the private bucket when missing). Otherwise — or offline — a placeholder.
+class BookCover extends ConsumerWidget {
   const BookCover({super.key, required this.url, this.size = 56});
   final String? url;
   final double size;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final placeholder = Container(
       width: size,
@@ -25,17 +27,27 @@ class BookCover extends StatelessWidget {
       child: Icon(Icons.menu_book, color: scheme.outline, size: size * 0.5),
     );
     final u = url;
-    if (u == null || !u.startsWith('https://')) return placeholder;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Image.network(
-        u,
+    Widget clip(Widget child) => ClipRRect(borderRadius: BorderRadius.circular(4), child: child);
+    if (u != null && CoverRef.objectPath(u) != null) {
+      final file = ref.watch(coverFileProvider(u)).value;
+      if (file == null) return placeholder;
+      return clip(Image.file(
+        file,
         width: size,
         height: size * 1.4,
         fit: BoxFit.cover,
+        cacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
         errorBuilder: (_, _, _) => placeholder,
-      ),
-    );
+      ));
+    }
+    if (u == null || !u.startsWith('https://')) return placeholder;
+    return clip(Image.network(
+      u,
+      width: size,
+      height: size * 1.4,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => placeholder,
+    ));
   }
 }
 

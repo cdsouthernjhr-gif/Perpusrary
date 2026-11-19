@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,6 +71,78 @@ void main() {
     expect(ops!.map((o) => '${o.entityType}:${o.operationType}'), ['books:insert', 'book_copies:insert']);
     expect(ops.every((o) => o.libraryId == 'lib-a'), isTrue);
     expect((jsonDecode(ops.first.payload) as Map<String, dynamic>)['title'], 'Sejarah Melayu');
+    await finish(tester);
+  });
+
+  testWidgets('manual entry with a cover photo (gallery): saved on the book and uploaded', (tester) async {
+    h = TestHarness(server: [libA(role: LibraryRole.staff), libB()]);
+    final c = await start(tester);
+    await go(tester, c, Routes.books);
+    await tester.tap(find.byKey(const Key('books.add')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('book.cover.remove')), findsNothing);
+    await tester.tap(find.byKey(const Key('book.cover.gallery')));
+    await tester.pumpAndSettle();
+    expect(h.coverPicker.calls, [false]);
+    expect(find.byKey(const Key('book.cover.remove')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('book.title')), 'Buku Tempatan Tanpa ISBN');
+    await tapSave(tester, 'book.save');
+    await tester.pumpAndSettle();
+
+    final book = (await tester.runAsync(() => h.db.select(h.db.localBooks).get()))!.single;
+    expect(book.coverImagePath, startsWith('storage:'));
+    expect(h.covers.uploaded, [book.coverImagePath], reason: 'online: uploaded right after saving');
+    final ops = await tester.runAsync(() => h.db.select(h.db.syncQueue).get());
+    expect((jsonDecode(ops!.first.payload) as Map<String, dynamic>)['cover_image_path'], book.coverImagePath);
+    await finish(tester);
+  });
+
+  testWidgets('cover photo taken offline stays pending; camera can be cancelled; photo can be removed',
+      (tester) async {
+    h = TestHarness(server: [libA(role: LibraryRole.staff), libB()], online: false);
+    final c = await start(tester);
+    await go(tester, c, Routes.books);
+    await tester.tap(find.byKey(const Key('books.add')));
+    await tester.pumpAndSettle();
+
+    h.coverPicker.next = null; // user cancels the camera
+    await tester.tap(find.byKey(const Key('book.cover.camera')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('book.cover.remove')), findsNothing);
+
+    h.coverPicker.next = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE1, 0, 0]);
+    await tester.tap(find.byKey(const Key('book.cover.camera')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('book.cover.remove')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('book.cover.camera')));
+    await tester.pumpAndSettle();
+    expect(h.coverPicker.calls, [true, true, true]);
+
+    await tester.enterText(find.byKey(const Key('book.title')), 'Buku Luar Talian');
+    await tapSave(tester, 'book.save');
+    await tester.pumpAndSettle();
+
+    final book = (await tester.runAsync(() => h.db.select(h.db.localBooks).get()))!.single;
+    expect(h.covers.pending, {book.coverImagePath});
+    expect(h.covers.uploaded, isEmpty);
+    expect(h.covers.stored.length, 2, reason: 'removed photo is not attached to the book');
+    await finish(tester);
+  });
+
+  testWidgets('unsupported image file shows a message', (tester) async {
+    h = TestHarness(server: [libA(role: LibraryRole.staff), libB()]);
+    final c = await start(tester);
+    await go(tester, c, Routes.books);
+    await tester.tap(find.byKey(const Key('books.add')));
+    await tester.pumpAndSettle();
+    h.coverPicker.next = Uint8List.fromList('%PDF-1.7'.codeUnits);
+    await tester.tap(find.byKey(const Key('book.cover.gallery')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Format gambar tidak disokong'), findsOneWidget);
+    expect(find.byKey(const Key('book.cover.remove')), findsNothing);
     await finish(tester);
   });
 
